@@ -45,7 +45,27 @@
     <script src="js/Excel.js"></script>
     <script src="js/vencimientoxlsx.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script>
+        function downloadFileFromBytes(filename, bytesBase64) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = "data:application/pdf;base64," + bytesBase64;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+    <script>
+        window.downloadFileFromByteArray = function (options) {
+            var blob = new Blob([new Uint8Array(options.byteArray)], { type: options.contentType });
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = options.fileName;
+            link.click();
+        }
+    </script>
+
+
 
 </body>
 

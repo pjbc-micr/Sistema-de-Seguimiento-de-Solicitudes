@@ -26,8 +26,18 @@
             <span class="module-description">Gestión completa de solicitudes y expedientes</span>
         </div>
 
-        <!-- Tarjetas inactivas -->
-        @for (int i = 2; i <= 12; i++)
+        <!-- Módulo REAL ubicado en el espacio #2 -->
+        @if (true) // este bloque reemplaza al módulo #2
+        {
+            <div class="module-card card-green" @onclick="NavigateToRecursosRevision">
+                <i class="fas fa-folder-open card-icon"></i>
+                <span class="module-title">Recursos de Revisión</span>
+                <span class="module-description">Gestión de recursos presentados</span>
+            </div>
+        }
+
+        <!-- Espacios restantes siguen siendo "Nuevo módulo" -->
+        @for (int i = 3; i <= 12; i++)
         {
             <div class="module-card @GetCardColor(i)" @onclick="() => ShowComingSoon()">
                 <i class="fas fa-plus-circle card-icon"></i>
@@ -35,6 +45,7 @@
                 <span class="module-description">Próximamente...</span>
             </div>
         }
+
     </div>
 </div>
 
@@ -55,4 +66,9 @@
     {
         Navigation.NavigateTo("/menu/modulo-solicitudes");
     }
+    private void NavigateToRecursosRevision()
+    {
+        Navigation.NavigateTo("/menu/recursos-revision");
+    }
+
 }

@@ -18,14 +18,13 @@
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
 
-        @* ---- Modulo de Solicitudes ---- *@
+        @* ---- Módulo de Solicitudes ---- *@
         @if (EnModuloSolicitudes)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="/menu/modulo-solicitudes/indice-expedientes">
                     <span class="bi bi-journal-text me-2"></span> Consulta de Solicitudes
                 </NavLink>
-
             </div>
 
             <div class="nav-item px-3">
@@ -60,30 +59,27 @@
                     </NavLink>
                 </div>
             </AuthorizeView>
+
+            @* ✔ ENLACE CORRECTO A LA BANDEJA DEL MÓDULO DE RECURSOS DE REVISIÓN *@
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="/menu/recursos-revision/registro">
+                    Recursos de Revisión
+                </NavLink>
+            </li>
         }
 
-
-        @* ---- Siguientes Modulos, usar la estructura de arriba, dependiendo la condicion se vera para 
-        el modulo seleccionado, igual se ocupa poner la ruta para el modulo en @code *@
-
-
-
-
-
-
-
+        @* Aquí agregarás los demás módulos después *@
 
     </nav>
 </div>
 
-
 @code {
-    // Ruta al modulo de solicitudes
+    // Detecta si estamos dentro del módulo de solicitudes
     private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes");
-
 
     private bool collapseNavMenu = true;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;

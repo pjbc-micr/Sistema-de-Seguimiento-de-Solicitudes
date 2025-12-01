@@ -1,0 +1,141 @@
+﻿@page "/menu/recursos-revision/registro/expediente"
+
+@using System.Net.Http.Json
+@using SolicitudesShared.RecursosRevision
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3 class="module-header">Expediente Digital del Recurso de Revisión</h3>
+<p class="module-subtitle">Capture la información correspondiente:</p>
+
+<div class="table-responsive mt-4">
+    <table class="table table-bordered table-striped">
+        <thead class="table-primary">
+            <tr>
+                <th>Fecha de Notificación de Admisión</th>
+                <th>Respuesta de la Solicitud</th>
+                <th>Fecha de Acuerdo</th>
+                <th>Contenido del Acuerdo</th>
+                <th>Materia del Recurso</th>
+                <th>Razón de la Interposición</th>
+                <th>Sentido de la Resolución</th>
+                <th>Fecha de Notificación</th>
+                <th>Folio de la Solicitud</th>
+                <th>Fecha de Contestación del Recurso</th>
+                <th>Fecha y Contenido del Acuerdo Final</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacionAdmision" /></td>
+                <td><input class="form-control" @bind="Modelo.RespuestaSolicitud" /></td>
+                <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdo" /></td>
+                <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
+                <td><input class="form-control" @bind="Modelo.MateriaRecurso" /></td>
+                <td><input class="form-control" @bind="Modelo.RazonInterposicion" /></td>
+                <td><input class="form-control" @bind="Modelo.SentidoResolucion" /></td>
+                <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacion" /></td>
+                <td><input class="form-control" @bind="Modelo.FolioSolicitud" /></td>
+                <td><input type="date" class="form-control" @bind="Modelo.FechaContestacionRecurso" /></td>
+                <td><input class="form-control" @bind="Modelo.ContenidoAcuerdoFinal" /></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<button class="btn btn-primary mt-3 me-2" @onclick="Guardar">Guardar</button>
+<button class="btn btn-success mt-3" @onclick="ExportarPDF">Exportar PDF</button>
+<button class="btn btn-danger mt-3" @onclick="GenerarPDF">
+    <i class="bi bi-filetype-pdf"></i> Descargar PDF
+</button>
+
+@code {
+
+    private ExpedienteRevisionDTO Modelo = new ExpedienteRevisionDTO();
+
+    //------------------------------------------------------
+    // GUARDAR EXPEDIENTE
+    //------------------------------------------------------
+    private async Task Guardar()
+    {
+        var respuesta = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
+
+        if (respuesta.IsSuccessStatusCode)
+        {
+            // Mostramos pregunta al usuario
+            bool confirmar = await JS.InvokeAsync<bool>("confirm",
+                "Expediente guardado correctamente.\n\n¿Deseas generar el PDF ahora?");
+
+            if (confirmar)
+            {
+                // Genera el PDF
+                await GenerarPDF();
+            }
+            else
+            {
+                // Regresa al módulo
+                Navigation.NavigateTo("/menu/recursos-revision");
+            }
+        }
+        else
+        {
+            var error = await respuesta.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("alert", "Error al guardar: " + error);
+        }
+    }
+
+
+    //------------------------------------------------------
+    // DESCARGAR PDF (QUEDA EN MEMORIA)
+    //------------------------------------------------------
+    private async Task GenerarPDF()
+    {
+        try
+        {
+            HttpResponseMessage respuesta =
+                await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var pdfBytes = await respuesta.Content.ReadAsByteArrayAsync();
+
+                await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+                {
+                    ByteArray = pdfBytes,
+                    FileName = "ExpedienteRevision.pdf",
+                    ContentType = "application/pdf"
+                });
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Error al generar el PDF.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Ocurrió un error: {ex.Message}");
+        }
+    }
+
+    //------------------------------------------------------
+    // EXPORTAR PDF (BASE64)
+    //------------------------------------------------------
+    private async Task ExportarPDF()
+    {
+        var respuesta =
+            await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+
+        if (!respuesta.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "Error al generar PDF");
+            return;
+        }
+
+        var pdfBytes = await respuesta.Content.ReadAsByteArrayAsync();
+        var base64 = Convert.ToBase64String(pdfBytes);
+
+        await JS.InvokeVoidAsync("downloadFileFromBytes", "ExpedienteRevision.pdf", base64);
+    }
+}
