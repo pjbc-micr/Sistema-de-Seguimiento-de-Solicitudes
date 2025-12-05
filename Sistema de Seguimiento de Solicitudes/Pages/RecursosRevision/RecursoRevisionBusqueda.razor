@@ -1,0 +1,205 @@
+﻿@page "/menu/recursos-revision/busqueda"
+
+@using System.Net.Http.Json
+@using SolicitudesShared.RecursosRevision
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3 class="module-header">Búsqueda de Recursos de Revisión</h3>
+<p class="module-subtitle">Busque un recurso por folio:</p>
+
+<input class="form-control"
+       placeholder="Escriba el folio..."
+       value="@FolioBusqueda"
+       @oninput="Buscar" />
+
+@if (FolioBusqueda.Length > 0 && Resultados.Count == 0)
+{
+    <p class="text-muted mt-2">Folio no encontrado...</p>
+}
+
+@if (Resultados.Count > 0)
+{
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered table-striped">
+            <thead class="table-primary">
+                <tr>
+                    <th>Fecha Notificación Admisión</th>
+                    <th>Respuesta Solicitud</th>
+                    <th>Fecha Acuerdo</th>
+                    <th>Contenido Acuerdo</th>
+                    <th>Materia</th>
+                    <th>Razón</th>
+                    <th>Sentido Resolución</th>
+                    <th>Fecha Notificación</th>
+                    <th>Folio</th>
+                    <th>Fecha Contestación</th>
+                    <th>Acuerdo Final</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    @Cell(nameof(Resultado.FechaNotificacionAdmision), isDate: true)
+                    @Cell(nameof(Resultado.RespuestaSolicitud))
+                    @Cell(nameof(Resultado.FechaAcuerdo), isDate: true)
+                    @Cell(nameof(Resultado.ContenidoAcuerdo))
+                    @Cell(nameof(Resultado.MateriaRecurso))
+                    @Cell(nameof(Resultado.RazonInterposicion))
+                    @Cell(nameof(Resultado.SentidoResolucion))
+                    @Cell(nameof(Resultado.FechaNotificacion), isDate: true)
+                    @Cell(nameof(Resultado.FolioSolicitud))
+                    @Cell(nameof(Resultado.FechaContestacionRecurso), isDate: true)
+                    @Cell(nameof(Resultado.ContenidoAcuerdoFinal))
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    @if (!ModoEdicion)
+    {
+        <button class="btn btn-warning mt-3" @onclick="ActivarEdicion">
+            Editar
+        </button>
+    }
+    else
+    {
+        <button class="btn btn-success mt-3 me-2" @onclick="GuardarCambios">
+            Guardar
+        </button>
+        <button class="btn btn-secondary mt-3" @onclick="Cancelar">
+            Cancelar
+        </button>
+    }
+}
+
+@code {
+    private string FolioBusqueda = "";
+    private List<ExpedienteRevisionDTO> Resultados = new();
+    private ExpedienteRevisionDTO Resultado = new();
+    private ExpedienteRevisionDTO Backup = new();
+    private bool ModoEdicion = false;
+
+    private async Task Buscar(ChangeEventArgs e)
+    {
+        FolioBusqueda = e.Value?.ToString() ?? "";
+
+        if (string.IsNullOrWhiteSpace(FolioBusqueda))
+        {
+            Resultados.Clear();
+            ModoEdicion = false;
+            return;
+        }
+
+        Resultados = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
+            $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
+        ) ?? new();
+
+        if (Resultados.Count > 0)
+            Resultado = Resultados[0];
+    }
+
+    void ActivarEdicion()
+    {
+        Backup = new ExpedienteRevisionDTO
+        {
+            IdExpediente = Resultado.IdExpediente,
+            FechaNotificacionAdmision = Resultado.FechaNotificacionAdmision,
+            RespuestaSolicitud = Resultado.RespuestaSolicitud,
+            FechaAcuerdo = Resultado.FechaAcuerdo,
+            ContenidoAcuerdo = Resultado.ContenidoAcuerdo,
+            MateriaRecurso = Resultado.MateriaRecurso,
+            RazonInterposicion = Resultado.RazonInterposicion,
+            SentidoResolucion = Resultado.SentidoResolucion,
+            FechaNotificacion = Resultado.FechaNotificacion,
+            FolioSolicitud = Resultado.FolioSolicitud,
+            FechaContestacionRecurso = Resultado.FechaContestacionRecurso,
+            ContenidoAcuerdoFinal = Resultado.ContenidoAcuerdoFinal
+        };
+
+        ModoEdicion = true;
+    }
+
+    void Cancelar()
+    {
+        Resultado = Backup;
+        ModoEdicion = false;
+    }
+
+    async Task GuardarCambios()
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm",
+            "¿Guardar cambios?");
+
+        if (!confirmar)
+            return;
+
+        var resp = await Http.PutAsJsonAsync(
+            "api/RecursoRevision/Expediente/Actualizar",
+            Resultado
+        );
+
+        if (resp.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "Cambios guardados.");
+            ModoEdicion = false;
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Error al guardar cambios.");
+        }
+    }
+
+    RenderFragment Cell(string prop, bool isDate = false) => builder =>
+    {
+        builder.OpenElement(0, "td");
+
+        var valor = Resultado.GetType().GetProperty(prop)?.GetValue(Resultado);
+
+        if (!ModoEdicion)
+        {
+            if (isDate && valor is DateTime dt)
+                builder.AddContent(1, dt.ToString("yyyy-MM-dd"));
+            else
+                builder.AddContent(1, valor?.ToString() ?? "--");
+        }
+        else
+        {
+            builder.OpenElement(2, "input");
+            builder.AddAttribute(3, "class", "form-control");
+
+            if (isDate)
+            {
+                builder.AddAttribute(4, "type", "date");
+                builder.AddAttribute(5, "value",
+                    valor is DateTime d ? d.ToString("yyyy-MM-dd") : "");
+            }
+            else
+            {
+                builder.AddAttribute(4, "value", valor?.ToString() ?? "");
+            }
+
+            builder.AddAttribute(6, "oninput",
+                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
+                {
+                    var p = Resultado.GetType().GetProperty(prop);
+
+                    if (isDate)
+                    {
+                        if (DateTime.TryParse(e.Value?.ToString(), out var parsed))
+                            p?.SetValue(Resultado, parsed);
+                        else
+                            p?.SetValue(Resultado, null);
+                    }
+                    else
+                    {
+                        p?.SetValue(Resultado, e.Value?.ToString());
+                    }
+                }));
+
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
+}

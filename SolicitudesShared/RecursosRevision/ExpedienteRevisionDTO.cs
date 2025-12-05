@@ -8,6 +8,7 @@ namespace SolicitudesShared.RecursosRevision
 {
     public class ExpedienteRevisionDTO
     {
+        public int IdExpediente { get; set; }  // ← Necesario para editar
         public DateTime? FechaNotificacionAdmision { get; set; }
         public string? RespuestaSolicitud { get; set; }
         public DateTime? FechaAcuerdo { get; set; }
