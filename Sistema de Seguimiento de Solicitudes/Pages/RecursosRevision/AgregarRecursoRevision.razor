@@ -16,6 +16,7 @@
             <tr>
                 <th>Número de Recurso de Revisión</th>
                 <th>Estatus</th>
+                <th>Resolución en sentido</th>
                 <th>Contenido de la Solicitud</th>
                 <th>Nombre de la Persona Recurrente</th>
                 <th>Sentido de la Contestación</th>
@@ -27,11 +28,34 @@
         <tbody style="background-color:#e7f1ff;">
             <tr>
                 <td><input class="form-control" @bind="Modelo.NumeroRecurso" /></td>
-                <td><input class="form-control" @bind="Modelo.Estatus" /></td>
+                <td>
+                    <select class="form-control" @bind="Modelo.Estatus">
+                        <option value="">-- Seleccione --</option>
+                        <option value="En Trámite">En Trámite</option>
+                        <option value="Concluido">Concluido</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-select" @bind="Modelo.ResolucionSentido">
+                        <option value="">-- Seleccione --</option>
+                        <option value="Confirma">Confirma</option>
+                        <option value="Sobresee">Sobresee</option>
+                        <option value="Modifica">Modifica</option>
+                        <option value="Revoca">Revoca</option>
+                        <option value="Dar Respuesta">Dar Respuesta</option>
+                    </select>
+                </td>
+
+
                 <td><input class="form-control" @bind="Modelo.ContenidoSolicitud" /></td>
                 <td><input class="form-control" @bind="Modelo.NombreRecurrente" /></td>
                 <td><input class="form-control" @bind="Modelo.SentidoContestacion" /></td>
-                <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdo" /></td>
+                <td>
+                    <input type="date"
+                           class="form-control"
+                           @bind="Modelo.FechaAcuerdo"
+                           @bind:format="yyyy-MM-dd" />
+                </td>
                 <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
             </tr>
         </tbody>

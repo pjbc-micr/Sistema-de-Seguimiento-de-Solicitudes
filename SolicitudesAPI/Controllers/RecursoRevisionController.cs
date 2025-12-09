@@ -24,27 +24,39 @@ namespace SolicitudesAPI.Controllers
             using (SqlConnection con = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
             {
                 string query = @"
-                INSERT INTO MT_RECURSO_REVISION
-                (NUMERO_RECURSO, ESTATUS, CONTENIDO_SOLICITUD, NOMBRE_RECURRENTE, SENTIDO_CONTESTACION, FECHA_ACUERDO)
-                VALUES (@NUMERO, @ESTATUS, @CONTENIDO, @RECURRENTE, @SENTIDO, @FECHA)";
+            INSERT INTO MT_RECURSO_REVISION
+            (NUMERO_RECURSO, ESTATUS, RESOLUCION_SENTIDO,
+             CONTENIDO_SOLICITUD, NOMBRE_RECURRENTE, SENTIDO_CONTESTACION,
+             FECHA_ACUERDO, CONTENIDO_ACUERDO, FECHA_REGISTRO)
+            VALUES
+            (@NumeroRecurso, @Estatus, @ResolucionSentido,
+             @ContenidoSolicitud, @NombreRecurrente, @SentidoContestacion,
+             @FechaAcuerdo, @ContenidoAcuerdo, GETDATE());
+        ";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    cmd.Parameters.AddWithValue("@NUMERO", modelo.NumeroRecurso ?? "");
-                    cmd.Parameters.AddWithValue("@ESTATUS", modelo.Estatus ?? "");
-                    cmd.Parameters.AddWithValue("@CONTENIDO", modelo.ContenidoSolicitud ?? "");
-                    cmd.Parameters.AddWithValue("@RECURRENTE", modelo.NombreRecurrente ?? "");
-                    cmd.Parameters.AddWithValue("@SENTIDO", modelo.SentidoContestacion ?? "");
-                    cmd.Parameters.AddWithValue("@FECHA", modelo.FechaAcuerdo);
+                    cmd.Parameters.AddWithValue("@NumeroRecurso", modelo.NumeroRecurso ?? "");
+                    cmd.Parameters.AddWithValue("@Estatus", modelo.Estatus ?? "");
+                    cmd.Parameters.AddWithValue("@ResolucionSentido", modelo.ResolucionSentido ?? "");
+                    cmd.Parameters.AddWithValue("@ContenidoSolicitud", modelo.ContenidoSolicitud ?? "");
+                    cmd.Parameters.AddWithValue("@NombreRecurrente", modelo.NombreRecurrente ?? "");
+                    cmd.Parameters.AddWithValue("@SentidoContestacion", modelo.SentidoContestacion ?? "");
+
+                    cmd.Parameters.AddWithValue("@FechaAcuerdo",
+                        modelo.FechaAcuerdo.HasValue ? (object)modelo.FechaAcuerdo.Value : DBNull.Value);
+
+                    cmd.Parameters.AddWithValue("@ContenidoAcuerdo", modelo.ContenidoAcuerdo ?? "");
 
                     con.Open();
                     await cmd.ExecuteNonQueryAsync();
-                    con.Close();
                 }
             }
 
             return Ok(new { mensaje = "Guardado correctamente" });
         }
+
+
         [HttpPost("Expediente")]
         public async Task<IActionResult> GuardarExpediente(ExpedienteRevisionDTO modelo)
         {
@@ -204,7 +216,112 @@ namespace SolicitudesAPI.Controllers
 
             return Ok(new { mensaje = "Expediente actualizado correctamente" });
         }
+        [HttpGet("Estadisticas")]
+        public async Task<IActionResult> ObtenerEstadisticas([FromQuery] int? mes, [FromQuery] int? anio)
+        {
+            var lista = new List<EstadisticaDTO>();
 
+            // Query que genera las 8 filas (UNION ALL), aplicando filtros opcionales por mes/año
+            string query = @"
+    -- EN TRAMITE
+    SELECT 'En Trámite' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE ESTATUS = 'En Trámite'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- CONCLUIDO
+    SELECT 'Concluido' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE ESTATUS = 'Concluido'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- RESOLUCION: Confirma
+    SELECT 'Resolución en sentido confirma' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE RESOLUCION_SENTIDO = 'Confirma'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- RESOLUCION: Sobresee
+    SELECT 'Resolución en sentido sobresee' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE RESOLUCION_SENTIDO = 'Sobresee'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- RESOLUCION: Modifica
+    SELECT 'Resolución en sentido modifica' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE RESOLUCION_SENTIDO = 'Modifica'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- RESOLUCION: Revoca
+    SELECT 'Resolución en sentido revoca' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE RESOLUCION_SENTIDO = 'Revoca'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio)
+
+    UNION ALL
+
+    -- RESOLUCION: Dar Respuesta
+    SELECT 'Resolución en sentido dar respuesta' AS Concepto,
+           COUNT(*) AS Cantidad,
+           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+    FROM MT_RECURSO_REVISION
+    WHERE RESOLUCION_SENTIDO = 'Dar Respuesta'
+      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO) = @mes)
+      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO) = @anio);
+
+    ";
+
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            using var cmd = new SqlCommand(query, con);
+
+            // parámetros (si vienen null envía DBNull.Value)
+            cmd.Parameters.AddWithValue("@mes", mes.HasValue ? (object)mes.Value : DBNull.Value);
+            cmd.Parameters.AddWithValue("@anio", anio.HasValue ? (object)anio.Value : DBNull.Value);
+
+            await con.OpenAsync();
+            using var dr = await cmd.ExecuteReaderAsync();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new EstadisticaDTO
+                {
+                    Concepto = dr["Concepto"]?.ToString() ?? "",
+                    Cantidad = dr["Cantidad"] as int? ?? Convert.ToInt32(dr["Cantidad"]),
+                    Recursos = dr["Recursos"]?.ToString() ?? ""
+                });
+            }
+
+            return Ok(lista);
+        }
 
 
 

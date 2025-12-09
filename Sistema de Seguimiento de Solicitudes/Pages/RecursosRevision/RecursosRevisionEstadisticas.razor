@@ -1,0 +1,104 @@
+﻿@page "/menu/recursos-revision/estadisticas"
+@using SolicitudesShared.RecursosRevision
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<h3 class="text-primary">Bandeja de Datos Estadísticos</h3>
+<p class="text-secondary">Filtra por mes y/o año según Fecha de Acuerdo</p>
+
+<div class="row g-2 align-items-center mb-3">
+    <div class="col-auto">
+        <select class="form-select" @bind="MesSeleccionado">
+            <option value="">— Mes —</option>
+            @for (int i = 1; i <= 12; i++)
+            {
+                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-auto">
+        <input type="number" class="form-control" placeholder="Año (ej. 2025)" @bind="AnioSeleccionadoString" style="width:120px;" />
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="Cargar">Buscar</button>
+        <button class="btn btn-secondary ms-2" @onclick="Limpiar">Limpiar</button>
+    </div>
+</div>
+
+@if (Cargando)
+{
+    <div>Obteniendo datos...</div>
+}
+else if (Lista.Count == 0)
+{
+    <div class="text-muted">No hay datos para los filtros indicados.</div>
+}
+else
+{
+    <div class="table-responsive mt-3">
+        <table class="table table-bordered">
+            <thead style="background-color:#0d6efd; color:white;">
+                <tr>
+                    <th>Concepto</th>
+                    <th>Cantidad de recursos de revisión</th>
+                    <th>Desglose de los Recursos de Revisión</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Lista)
+                {
+                    <tr>
+                        <td>@r.Concepto</td>
+                        <td>@r.Cantidad</td>
+                        <td style="white-space:normal;">@r.Recursos</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private int? MesSeleccionado = null;
+    private string AnioSeleccionadoString = "";
+    private List<EstadisticaDTO> Lista = new();
+    private bool Cargando = false;
+
+    private async Task Cargar()
+    {
+        Cargando = true;
+        Lista.Clear();
+
+        int? anio = null;
+        if (int.TryParse(AnioSeleccionadoString, out var y)) anio = y;
+
+        string url = "api/RecursoRevision/Estadisticas";
+        var query = new List<string>();
+        if (MesSeleccionado.HasValue) query.Add($"mes={MesSeleccionado.Value}");
+        if (anio.HasValue) query.Add($"anio={anio.Value}");
+        if (query.Count > 0) url += "?" + string.Join("&", query);
+
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<EstadisticaDTO>>(url);
+            if (res != null) Lista = res;
+        }
+        catch
+        {
+            Lista = new List<EstadisticaDTO>();
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private void Limpiar()
+    {
+        MesSeleccionado = null;
+        AnioSeleccionadoString = "";
+        Lista.Clear();
+    }
+}
