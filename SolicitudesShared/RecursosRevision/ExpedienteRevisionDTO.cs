@@ -8,7 +8,7 @@ namespace SolicitudesShared.RecursosRevision
 {
     public class ExpedienteRevisionDTO
     {
-        public int IdExpediente { get; set; }  // ← Necesario para editar
+        public int IdExpediente { get; set; }
         public DateTime? FechaNotificacionAdmision { get; set; }
         public string? RespuestaSolicitud { get; set; }
         public DateTime? FechaAcuerdo { get; set; }
@@ -19,6 +19,10 @@ namespace SolicitudesShared.RecursosRevision
         public DateTime? FechaNotificacion { get; set; }
         public string? FolioSolicitud { get; set; }
         public DateTime? FechaContestacionRecurso { get; set; }
+
+        // ✔ Nuevas columnas separadas
+        public DateTime? FechaAcuerdoFinal { get; set; }
         public string? ContenidoAcuerdoFinal { get; set; }
     }
+
 }

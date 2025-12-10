@@ -23,7 +23,8 @@
                 <th>Fecha de Notificación</th>
                 <th>Folio de la Solicitud</th>
                 <th>Fecha de Contestación del Recurso</th>
-                <th>Fecha y Contenido del Acuerdo Final</th>
+                <th>Fecha de Acuerdo Final</th>
+                <th>Contenido del Acuerdo Final</th>
             </tr>
         </thead>
 
@@ -39,6 +40,11 @@
                 <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacion" /></td>
                 <td><input class="form-control" @bind="Modelo.FolioSolicitud" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaContestacionRecurso" /></td>
+
+                <!-- ✔ NUEVO CAMPO -->
+                <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdoFinal" /></td>
+
+                <!-- ✔ SIGUE IGUAL -->
                 <td><input class="form-control" @bind="Modelo.ContenidoAcuerdoFinal" /></td>
             </tr>
         </tbody>
@@ -50,14 +56,10 @@
     <i class="bi bi-filetype-pdf"></i> Descargar PDF
 </button>
 
-
 @code {
 
     private ExpedienteRevisionDTO Modelo = new ExpedienteRevisionDTO();
 
-    //------------------------------------------------------
-    // GUARDAR EXPEDIENTE
-    //------------------------------------------------------
     private async Task Guardar()
     {
         var respuesta = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
@@ -71,10 +73,6 @@
             {
                 await GenerarPDF();
             }
-
-            // ← IMPORTANTE:
-            // Ya NO te manda al menú cuando eliges "Cancelar".
-            // Simplemente se queda en la página.
         }
         else
         {
@@ -83,21 +81,15 @@
         }
     }
 
-
-
-    //------------------------------------------------------
-    // DESCARGAR PDF (QUEDA EN MEMORIA)
-    //------------------------------------------------------
     private async Task GenerarPDF()
     {
         try
         {
-            HttpResponseMessage respuesta =
-                await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
 
-            if (respuesta.IsSuccessStatusCode)
+            if (resp.IsSuccessStatusCode)
             {
-                var pdfBytes = await respuesta.Content.ReadAsByteArrayAsync();
+                var pdfBytes = await resp.Content.ReadAsByteArrayAsync();
 
                 await JS.InvokeVoidAsync("downloadFileFromByteArray", new
                 {
@@ -113,9 +105,8 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Ocurrió un error: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", ex.Message);
         }
     }
 
-   
 }

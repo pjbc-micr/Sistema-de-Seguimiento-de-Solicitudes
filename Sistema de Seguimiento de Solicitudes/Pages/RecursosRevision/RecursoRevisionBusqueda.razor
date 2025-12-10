@@ -5,12 +5,12 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3 class="module-header">Búsqueda de Recursos de Revisión</h3>
-<p class="module-subtitle">Busque un recurso por folio:</p>
+<h3 class="module-header">Búsqueda de Expedientes de Revisión</h3>
+<p class="module-subtitle">Busque un expediente por folio:</p>
 
 <input class="form-control"
        placeholder="Escriba el folio..."
-       value="@FolioBusqueda"
+       @bind="FolioBusqueda"
        @oninput="Buscar" />
 
 @if (FolioBusqueda.Length > 0 && Resultados.Count == 0)
@@ -24,7 +24,8 @@
         <table class="table table-bordered table-striped">
             <thead class="table-primary">
                 <tr>
-                    <th>Fecha Notificación Admisión</th>
+                    <th>Seleccionar</th>
+                    <th>Fecha Notif. Admisión</th>
                     <th>Respuesta Solicitud</th>
                     <th>Fecha Acuerdo</th>
                     <th>Contenido Acuerdo</th>
@@ -34,42 +35,258 @@
                     <th>Fecha Notificación</th>
                     <th>Folio</th>
                     <th>Fecha Contestación</th>
-                    <th>Acuerdo Final</th>
+                    <th>Fecha Acuerdo Final</th>
+                    <th>Contenido Acuerdo Final</th>
                 </tr>
             </thead>
 
             <tbody>
-                <tr>
-                    @Cell(nameof(Resultado.FechaNotificacionAdmision), isDate: true)
-                    @Cell(nameof(Resultado.RespuestaSolicitud))
-                    @Cell(nameof(Resultado.FechaAcuerdo), isDate: true)
-                    @Cell(nameof(Resultado.ContenidoAcuerdo))
-                    @Cell(nameof(Resultado.MateriaRecurso))
-                    @Cell(nameof(Resultado.RazonInterposicion))
-                    @Cell(nameof(Resultado.SentidoResolucion))
-                    @Cell(nameof(Resultado.FechaNotificacion), isDate: true)
-                    @Cell(nameof(Resultado.FolioSolicitud))
-                    @Cell(nameof(Resultado.FechaContestacionRecurso), isDate: true)
-                    @Cell(nameof(Resultado.ContenidoAcuerdoFinal))
-                </tr>
+                @foreach (var item in Resultados)
+                {
+                    bool esSeleccionado = Resultado.IdExpediente == item.IdExpediente;
+
+                    <tr class="@(esSeleccionado ? "table-warning" : "")">
+                        <td>
+                            <input type="radio"
+                                   name="sel"
+                                   @onchange="(() => Seleccionar(item))" />
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input type="date" class="form-control"
+                                       @bind="Resultado.FechaNotificacionAdmision" />
+                            }
+                            else
+                            {
+
+                                @Mostrar(item.FechaNotificacionAdmision)
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.RespuestaSolicitud" />
+                            }
+                            else
+                            {
+
+                                @item.RespuestaSolicitud
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input type="date" class="form-control"
+                                       @bind="Resultado.FechaAcuerdo" />
+                            }
+                            else
+                            {
+
+                                @Mostrar(item.FechaAcuerdo)
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.ContenidoAcuerdo" />
+                            }
+                            else
+                            {
+
+                                @item.ContenidoAcuerdo
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.MateriaRecurso" />
+                            }
+                            else
+                            {
+
+                                @item.MateriaRecurso
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.RazonInterposicion" />
+                            }
+                            else
+                            {
+
+                                @item.RazonInterposicion
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.SentidoResolucion" />
+                            }
+                            else
+                            {
+
+                                @item.SentidoResolucion
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input type="date" class="form-control"
+                                       @bind="Resultado.FechaNotificacion" />
+                            }
+                            else
+                            {
+
+                                @Mostrar(item.FechaNotificacion)
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.FolioSolicitud" />
+                            }
+                            else
+                            {
+
+                                @item.FolioSolicitud
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input type="date" class="form-control"
+                                       @bind="Resultado.FechaContestacionRecurso" />
+                            }
+                            else
+                            {
+
+                                @Mostrar(item.FechaContestacionRecurso)
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input type="date" class="form-control"
+                                       @bind="Resultado.FechaAcuerdoFinal" />
+                            }
+                            else
+                            {
+
+                                @Mostrar(item.FechaAcuerdoFinal)
+                            }
+                        </td>
+
+                        <td>
+                            @if (ModoEdicion && esSeleccionado)
+                            {
+                                <input class="form-control"
+                                       @bind="Resultado.ContenidoAcuerdoFinal" />
+                            }
+                            else
+                            {
+
+                                @item.ContenidoAcuerdoFinal
+                            }
+                        </td>
+                    </tr>
+                }
             </tbody>
+
         </table>
     </div>
 
-    @if (!ModoEdicion)
+    <button class="btn btn-warning mt-3 me-2" @onclick="ActivarEdicion" disabled="@(!PuedeEditar)">
+        ✏ Editar
+    </button>
+
+    @if (ModoEdicion)
     {
-        <button class="btn btn-warning mt-3" @onclick="ActivarEdicion">
-            Editar
+        <button class="btn btn-success mt-3" @onclick="GuardarCambios">
+            💾 Guardar
         </button>
-    }
-    else
-    {
-        <button class="btn btn-success mt-3 me-2" @onclick="GuardarCambios">
-            Guardar
-        </button>
-        <button class="btn btn-secondary mt-3" @onclick="Cancelar">
-            Cancelar
-        </button>
+
+        <h4 class="mt-4">Editar Expediente Seleccionado</h4>
+
+        <div class="row">
+            <div class="col-md-4">
+                <label>Fecha Notificación Admisión:</label>
+                <input type="date" class="form-control" @bind="Resultado.FechaNotificacionAdmision" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Respuesta Solicitud:</label>
+                <input class="form-control" @bind="Resultado.RespuestaSolicitud" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Fecha Acuerdo:</label>
+                <input type="date" class="form-control" @bind="Resultado.FechaAcuerdo" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Contenido Acuerdo:</label>
+                <input class="form-control" @bind="Resultado.ContenidoAcuerdo" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Materia:</label>
+                <input class="form-control" @bind="Resultado.MateriaRecurso" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Razón Interposición:</label>
+                <input class="form-control" @bind="Resultado.RazonInterposicion" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Sentido Resolución:</label>
+                <input class="form-control" @bind="Resultado.SentidoResolucion" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Fecha Notificación:</label>
+                <input type="date" class="form-control" @bind="Resultado.FechaNotificacion" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Folio:</label>
+                <input class="form-control" @bind="Resultado.FolioSolicitud" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Fecha Contestación:</label>
+                <input type="date" class="form-control" @bind="Resultado.FechaContestacionRecurso" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Fecha Acuerdo Final:</label>
+                <input type="date" class="form-control" @bind="Resultado.FechaAcuerdoFinal" />
+            </div>
+
+            <div class="col-md-4">
+                <label>Contenido Acuerdo Final:</label>
+                <input class="form-control" @bind="Resultado.ContenidoAcuerdoFinal" />
+            </div>
+        </div>
     }
 }
 
@@ -77,8 +294,9 @@
     private string FolioBusqueda = "";
     private List<ExpedienteRevisionDTO> Resultados = new();
     private ExpedienteRevisionDTO Resultado = new();
-    private ExpedienteRevisionDTO Backup = new();
     private bool ModoEdicion = false;
+
+    private bool PuedeEditar => Resultado.IdExpediente > 0;
 
     private async Task Buscar(ChangeEventArgs e)
     {
@@ -87,57 +305,39 @@
         if (string.IsNullOrWhiteSpace(FolioBusqueda))
         {
             Resultados.Clear();
+            Resultado = new();
             ModoEdicion = false;
             return;
         }
 
-        Resultados = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
-            $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
-        ) ?? new();
-
-        if (Resultados.Count > 0)
-            Resultado = Resultados[0];
+        Resultados =
+            await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
+                $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
+            ) ?? new List<ExpedienteRevisionDTO>();
     }
 
-    void ActivarEdicion()
-    {
-        Backup = new ExpedienteRevisionDTO
-        {
-            IdExpediente = Resultado.IdExpediente,
-            FechaNotificacionAdmision = Resultado.FechaNotificacionAdmision,
-            RespuestaSolicitud = Resultado.RespuestaSolicitud,
-            FechaAcuerdo = Resultado.FechaAcuerdo,
-            ContenidoAcuerdo = Resultado.ContenidoAcuerdo,
-            MateriaRecurso = Resultado.MateriaRecurso,
-            RazonInterposicion = Resultado.RazonInterposicion,
-            SentidoResolucion = Resultado.SentidoResolucion,
-            FechaNotificacion = Resultado.FechaNotificacion,
-            FolioSolicitud = Resultado.FolioSolicitud,
-            FechaContestacionRecurso = Resultado.FechaContestacionRecurso,
-            ContenidoAcuerdoFinal = Resultado.ContenidoAcuerdoFinal
-        };
+    private string Mostrar(DateTime? dt) => dt?.ToString("dd/MM/yyyy") ?? "--";
 
-        ModoEdicion = true;
-    }
-
-    void Cancelar()
+    private void Seleccionar(ExpedienteRevisionDTO item)
     {
-        Resultado = Backup;
+        Resultado = item;
         ModoEdicion = false;
     }
 
-    async Task GuardarCambios()
+    private void ActivarEdicion()
     {
-        bool confirmar = await JS.InvokeAsync<bool>("confirm",
-            "¿Guardar cambios?");
+        if (Resultado.IdExpediente > 0)
+            ModoEdicion = true;
+    }
+
+    private async Task GuardarCambios()
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas guardar los cambios?");
 
         if (!confirmar)
             return;
 
-        var resp = await Http.PutAsJsonAsync(
-            "api/RecursoRevision/Expediente/Actualizar",
-            Resultado
-        );
+        var resp = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", Resultado);
 
         if (resp.IsSuccessStatusCode)
         {
@@ -146,60 +346,7 @@
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "Error al guardar cambios.");
+            await JS.InvokeVoidAsync("alert", "Error al guardar.");
         }
     }
-
-    RenderFragment Cell(string prop, bool isDate = false) => builder =>
-    {
-        builder.OpenElement(0, "td");
-
-        var valor = Resultado.GetType().GetProperty(prop)?.GetValue(Resultado);
-
-        if (!ModoEdicion)
-        {
-            if (isDate && valor is DateTime dt)
-                builder.AddContent(1, dt.ToString("yyyy-MM-dd"));
-            else
-                builder.AddContent(1, valor?.ToString() ?? "--");
-        }
-        else
-        {
-            builder.OpenElement(2, "input");
-            builder.AddAttribute(3, "class", "form-control");
-
-            if (isDate)
-            {
-                builder.AddAttribute(4, "type", "date");
-                builder.AddAttribute(5, "value",
-                    valor is DateTime d ? d.ToString("yyyy-MM-dd") : "");
-            }
-            else
-            {
-                builder.AddAttribute(4, "value", valor?.ToString() ?? "");
-            }
-
-            builder.AddAttribute(6, "oninput",
-                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                {
-                    var p = Resultado.GetType().GetProperty(prop);
-
-                    if (isDate)
-                    {
-                        if (DateTime.TryParse(e.Value?.ToString(), out var parsed))
-                            p?.SetValue(Resultado, parsed);
-                        else
-                            p?.SetValue(Resultado, null);
-                    }
-                    else
-                    {
-                        p?.SetValue(Resultado, e.Value?.ToString());
-                    }
-                }));
-
-            builder.CloseElement();
-        }
-
-        builder.CloseElement();
-    };
 }

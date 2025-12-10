@@ -63,12 +63,13 @@ namespace SolicitudesAPI.Controllers
             using (SqlConnection con = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
             {
                 string query = @"
-        INSERT INTO MT_EXPEDIENTE_RECURSO
-        (FECHA_NOTIFICACION_ADMISION, RESPUESTA_SOLICITUD, FECHA_ACUERDO, CONTENIDO_ACUERDO,
-         MATERIA_RECURSO, RAZON_INTERPOSICION, SENTIDO_RESOLUCION, FECHA_NOTIFICACION,
-         FOLIO_SOLICITUD, FECHA_CONTESTACION_RECURSO, CONTENIDO_ACUERDO_FINAL)
-        VALUES
-        (@F1, @F2, @F3, @F4, @F5, @F6, @F7, @F8, @F9, @F10, @F11)";
+INSERT INTO MT_EXPEDIENTE_RECURSO
+(FECHA_NOTIFICACION_ADMISION, RESPUESTA_SOLICITUD, FECHA_ACUERDO, CONTENIDO_ACUERDO,
+ MATERIA_RECURSO, RAZON_INTERPOSICION, SENTIDO_RESOLUCION, FECHA_NOTIFICACION,
+ FOLIO_SOLICITUD, FECHA_CONTESTACION_RECURSO,
+ FECHA_ACUERDO_FINAL, CONTENIDO_ACUERDO_FINAL)
+VALUES
+(@F1, @F2, @F3, @F4, @F5, @F6, @F7, @F8, @F9, @F10, @F11, @F12)";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
@@ -82,7 +83,10 @@ namespace SolicitudesAPI.Controllers
                     cmd.Parameters.AddWithValue("@F8", modelo.FechaNotificacion ?? (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@F9", modelo.FolioSolicitud ?? "");
                     cmd.Parameters.AddWithValue("@F10", modelo.FechaContestacionRecurso ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@F11", modelo.ContenidoAcuerdoFinal ?? "");
+
+                    // ✔ NUEVOS CAMPOS
+                    cmd.Parameters.AddWithValue("@F11", modelo.FechaAcuerdoFinal ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@F12", modelo.ContenidoAcuerdoFinal ?? "");
 
                     con.Open();
                     await cmd.ExecuteNonQueryAsync();
@@ -91,6 +95,7 @@ namespace SolicitudesAPI.Controllers
 
             return Ok(new { mensaje = "Expediente guardado correctamente" });
         }
+
 
         [HttpPost("Expediente/PDF")]
         public IActionResult GenerarPDF([FromBody] ExpedienteRevisionDTO modelo)
@@ -158,8 +163,13 @@ namespace SolicitudesAPI.Controllers
                                 FechaNotificacion = dr["FECHA_NOTIFICACION"] as DateTime?,
                                 FolioSolicitud = dr["FOLIO_SOLICITUD"]?.ToString(),
                                 FechaContestacionRecurso = dr["FECHA_CONTESTACION_RECURSO"] as DateTime?,
+
+                                // ✔ NUEVO CAMPO FECHA ACUERDO FINAL
+                                FechaAcuerdoFinal = dr["FECHA_ACUERDO_FINAL"] as DateTime?,
+
                                 ContenidoAcuerdoFinal = dr["CONTENIDO_ACUERDO_FINAL"]?.ToString()
                             });
+
                         }
                     }
                 }
@@ -216,6 +226,44 @@ namespace SolicitudesAPI.Controllers
 
             return Ok(new { mensaje = "Expediente actualizado correctamente" });
         }
+        // GET: api/RecursoRevision/Expediente/{id}
+        [HttpGet("Expediente/{id:int}")]
+        public async Task<IActionResult> ObtenerExpedientePorId(int id)
+        {
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"SELECT TOP 1 *
+                     FROM MT_EXPEDIENTE_RECURSO
+                     WHERE ID_EXPEDIENTE = @ID";
+
+            using var cmd = new SqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@ID", id);
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            if (!dr.Read()) return NotFound();
+
+            var dto = new ExpedienteRevisionDTO
+            {
+                IdExpediente = dr.GetInt32(dr.GetOrdinal("ID_EXPEDIENTE")),
+                FechaNotificacionAdmision = dr["FECHA_NOTIFICACION_ADMISION"] as DateTime?,
+                RespuestaSolicitud = dr["RESPUESTA_SOLICITUD"]?.ToString(),
+                FechaAcuerdo = dr["FECHA_ACUERDO"] as DateTime?,
+                ContenidoAcuerdo = dr["CONTENIDO_ACUERDO"]?.ToString(),
+                MateriaRecurso = dr["MATERIA_RECURSO"]?.ToString(),
+                RazonInterposicion = dr["RAZON_INTERPOSICION"]?.ToString(),
+                SentidoResolucion = dr["SENTIDO_RESOLUCION"]?.ToString(),
+                FechaNotificacion = dr["FECHA_NOTIFICACION"] as DateTime?,
+                FolioSolicitud = dr["FOLIO_SOLICITUD"]?.ToString(),
+                FechaContestacionRecurso = dr["FECHA_CONTESTACION_RECURSO"] as DateTime?,
+                FechaAcuerdoFinal = dr["FECHA_ACUERDO_FINAL"] as DateTime?,        // si lo tienes
+                ContenidoAcuerdoFinal = dr["CONTENIDO_ACUERDO_FINAL"]?.ToString()
+            };
+
+            return Ok(dto);
+        }
+
+
         [HttpGet("Estadisticas")]
         public async Task<IActionResult> ObtenerEstadisticas([FromQuery] int? mes, [FromQuery] int? anio)
         {
