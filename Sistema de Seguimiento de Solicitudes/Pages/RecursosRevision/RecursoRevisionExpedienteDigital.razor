@@ -34,7 +34,11 @@
                 <td><input class="form-control" @bind="Modelo.RespuestaSolicitud" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdo" /></td>
                 <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
-                <td><input class="form-control" @bind="Modelo.MateriaRecurso" /></td>
+                <select class="form-control" @bind="Modelo.MateriaRecurso">
+                    <option value="">Seleccione una opción...</option>
+                    <option value="DP">DP</option>
+                    <option value="DAI">DAI</option>
+                </select>
                 <td><input class="form-control" @bind="Modelo.RazonInterposicion" /></td>
                 <td><input class="form-control" @bind="Modelo.SentidoResolucion" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacion" /></td>

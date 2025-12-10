@@ -5,12 +5,12 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3 class="module-header">Búsqueda de Expedientes de Revisión</h3>
-<p class="module-subtitle">Busque un expediente por folio:</p>
+<h3 class="module-header">Búsqueda de Recursos de Revisión</h3>
+<p class="module-subtitle">Busque un recurso por folio:</p>
 
 <input class="form-control"
        placeholder="Escriba el folio..."
-       @bind="FolioBusqueda"
+       value="@FolioBusqueda"
        @oninput="Buscar" />
 
 @if (FolioBusqueda.Length > 0 && Resultados.Count == 0)
@@ -24,7 +24,6 @@
         <table class="table table-bordered table-striped">
             <thead class="table-primary">
                 <tr>
-                    <th>Seleccionar</th>
                     <th>Fecha Notif. Admisión</th>
                     <th>Respuesta Solicitud</th>
                     <th>Fecha Acuerdo</th>
@@ -37,266 +36,76 @@
                     <th>Fecha Contestación</th>
                     <th>Fecha Acuerdo Final</th>
                     <th>Contenido Acuerdo Final</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
 
             <tbody>
                 @foreach (var item in Resultados)
                 {
-                    bool esSeleccionado = Resultado.IdExpediente == item.IdExpediente;
+                    <tr>
+                        <td>@Show(item.FechaNotificacionAdmision)</td>
+                        <td>@item.RespuestaSolicitud</td>
+                        <td>@Show(item.FechaAcuerdo)</td>
+                        <td>@item.ContenidoAcuerdo</td>
 
-                    <tr class="@(esSeleccionado ? "table-warning" : "")">
+                        <!-- MATERIA DEL RECURSO (DP / DAI) -->
                         <td>
-                            <input type="radio"
-                                   name="sel"
-                                   @onchange="(() => Seleccionar(item))" />
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
+                            @if (IdEditando == item.IdExpediente)
                             {
-                                <input type="date" class="form-control"
-                                       @bind="Resultado.FechaNotificacionAdmision" />
+                                <select class="form-control" @bind="item.MateriaRecurso">
+                                    <option value="">Seleccione...</option>
+                                    <option value="DP">DP</option>
+                                    <option value="DAI">DAI</option>
+                                </select>
                             }
                             else
                             {
-
-                                @Mostrar(item.FechaNotificacionAdmision)
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.RespuestaSolicitud" />
-                            }
-                            else
-                            {
-
-                                @item.RespuestaSolicitud
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input type="date" class="form-control"
-                                       @bind="Resultado.FechaAcuerdo" />
-                            }
-                            else
-                            {
-
-                                @Mostrar(item.FechaAcuerdo)
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.ContenidoAcuerdo" />
-                            }
-                            else
-                            {
-
-                                @item.ContenidoAcuerdo
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.MateriaRecurso" />
-                            }
-                            else
-                            {
-
                                 @item.MateriaRecurso
                             }
                         </td>
 
+                        <td>@item.RazonInterposicion</td>
+                        <td>@item.SentidoResolucion</td>
+                        <td>@Show(item.FechaNotificacion)</td>
+                        <td>@item.FolioSolicitud</td>
+                        <td>@Show(item.FechaContestacionRecurso)</td>
+                        <td>@Show(item.FechaAcuerdoFinal)</td>
+                        <td>@item.ContenidoAcuerdoFinal</td>
+
                         <td>
-                            @if (ModoEdicion && esSeleccionado)
+                            @if (IdEditando == item.IdExpediente)
                             {
-                                <input class="form-control"
-                                       @bind="Resultado.RazonInterposicion" />
+                                <button class="btn btn-success btn-sm"
+                                        @onclick="(() => GuardarFila(item))">
+                                    Guardar
+                                </button>
+
+                                <button class="btn btn-secondary btn-sm ms-2"
+                                        @onclick="CancelarEdicion">
+                                    Cancelar
+                                </button>
                             }
                             else
                             {
-
-                                @item.RazonInterposicion
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.SentidoResolucion" />
-                            }
-                            else
-                            {
-
-                                @item.SentidoResolucion
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input type="date" class="form-control"
-                                       @bind="Resultado.FechaNotificacion" />
-                            }
-                            else
-                            {
-
-                                @Mostrar(item.FechaNotificacion)
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.FolioSolicitud" />
-                            }
-                            else
-                            {
-
-                                @item.FolioSolicitud
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input type="date" class="form-control"
-                                       @bind="Resultado.FechaContestacionRecurso" />
-                            }
-                            else
-                            {
-
-                                @Mostrar(item.FechaContestacionRecurso)
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input type="date" class="form-control"
-                                       @bind="Resultado.FechaAcuerdoFinal" />
-                            }
-                            else
-                            {
-
-                                @Mostrar(item.FechaAcuerdoFinal)
-                            }
-                        </td>
-
-                        <td>
-                            @if (ModoEdicion && esSeleccionado)
-                            {
-                                <input class="form-control"
-                                       @bind="Resultado.ContenidoAcuerdoFinal" />
-                            }
-                            else
-                            {
-
-                                @item.ContenidoAcuerdoFinal
+                                <button class="btn btn-warning btn-sm"
+                                        @onclick="(() => IniciarEdicion(item.IdExpediente))">
+                                    Editar
+                                </button>
                             }
                         </td>
                     </tr>
                 }
             </tbody>
-
         </table>
     </div>
-
-    <button class="btn btn-warning mt-3 me-2" @onclick="ActivarEdicion" disabled="@(!PuedeEditar)">
-        ✏ Editar
-    </button>
-
-    @if (ModoEdicion)
-    {
-        <button class="btn btn-success mt-3" @onclick="GuardarCambios">
-            💾 Guardar
-        </button>
-
-        <h4 class="mt-4">Editar Expediente Seleccionado</h4>
-
-        <div class="row">
-            <div class="col-md-4">
-                <label>Fecha Notificación Admisión:</label>
-                <input type="date" class="form-control" @bind="Resultado.FechaNotificacionAdmision" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Respuesta Solicitud:</label>
-                <input class="form-control" @bind="Resultado.RespuestaSolicitud" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Fecha Acuerdo:</label>
-                <input type="date" class="form-control" @bind="Resultado.FechaAcuerdo" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Contenido Acuerdo:</label>
-                <input class="form-control" @bind="Resultado.ContenidoAcuerdo" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Materia:</label>
-                <input class="form-control" @bind="Resultado.MateriaRecurso" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Razón Interposición:</label>
-                <input class="form-control" @bind="Resultado.RazonInterposicion" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Sentido Resolución:</label>
-                <input class="form-control" @bind="Resultado.SentidoResolucion" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Fecha Notificación:</label>
-                <input type="date" class="form-control" @bind="Resultado.FechaNotificacion" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Folio:</label>
-                <input class="form-control" @bind="Resultado.FolioSolicitud" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Fecha Contestación:</label>
-                <input type="date" class="form-control" @bind="Resultado.FechaContestacionRecurso" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Fecha Acuerdo Final:</label>
-                <input type="date" class="form-control" @bind="Resultado.FechaAcuerdoFinal" />
-            </div>
-
-            <div class="col-md-4">
-                <label>Contenido Acuerdo Final:</label>
-                <input class="form-control" @bind="Resultado.ContenidoAcuerdoFinal" />
-            </div>
-        </div>
-    }
 }
 
 @code {
+
     private string FolioBusqueda = "";
     private List<ExpedienteRevisionDTO> Resultados = new();
-    private ExpedienteRevisionDTO Resultado = new();
-    private bool ModoEdicion = false;
-
-    private bool PuedeEditar => Resultado.IdExpediente > 0;
+    private int? IdEditando = null;
 
     private async Task Buscar(ChangeEventArgs e)
     {
@@ -305,48 +114,49 @@
         if (string.IsNullOrWhiteSpace(FolioBusqueda))
         {
             Resultados.Clear();
-            Resultado = new();
-            ModoEdicion = false;
+            IdEditando = null;
             return;
         }
 
-        Resultados =
-            await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
-                $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
-            ) ?? new List<ExpedienteRevisionDTO>();
+        Resultados = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
+            $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
+        ) ?? new List<ExpedienteRevisionDTO>();
     }
 
-    private string Mostrar(DateTime? dt) => dt?.ToString("dd/MM/yyyy") ?? "--";
+    private string Show(DateTime? dt) =>
+        dt?.ToString("yyyy-MM-dd") ?? "--";
 
-    private void Seleccionar(ExpedienteRevisionDTO item)
+    private void IniciarEdicion(int id)
     {
-        Resultado = item;
-        ModoEdicion = false;
+        IdEditando = id;
     }
 
-    private void ActivarEdicion()
+    private void CancelarEdicion()
     {
-        if (Resultado.IdExpediente > 0)
-            ModoEdicion = true;
+        IdEditando = null;
     }
 
-    private async Task GuardarCambios()
+    private async Task GuardarFila(ExpedienteRevisionDTO item)
     {
-        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas guardar los cambios?");
+        bool confirmar = await JS.InvokeAsync<bool>("confirm",
+            "¿Deseas guardar los cambios?");
 
         if (!confirmar)
             return;
 
-        var resp = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", Resultado);
+        var resp = await Http.PutAsJsonAsync(
+            "api/RecursoRevision/Expediente/Actualizar",
+            item
+        );
 
         if (resp.IsSuccessStatusCode)
         {
-            await JS.InvokeVoidAsync("alert", "Cambios guardados.");
-            ModoEdicion = false;
+            await JS.InvokeVoidAsync("alert", "Cambios guardados correctamente.");
+            IdEditando = null;
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "Error al guardar.");
+            await JS.InvokeVoidAsync("alert", "Error al guardar los cambios.");
         }
     }
 }
