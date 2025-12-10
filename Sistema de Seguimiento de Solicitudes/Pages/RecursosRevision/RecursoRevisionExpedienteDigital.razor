@@ -46,10 +46,10 @@
 </div>
 
 <button class="btn btn-primary mt-3 me-2" @onclick="Guardar">Guardar</button>
-<button class="btn btn-success mt-3" @onclick="ExportarPDF">Exportar PDF</button>
 <button class="btn btn-danger mt-3" @onclick="GenerarPDF">
     <i class="bi bi-filetype-pdf"></i> Descargar PDF
 </button>
+
 
 @code {
 
@@ -64,20 +64,17 @@
 
         if (respuesta.IsSuccessStatusCode)
         {
-            // Mostramos pregunta al usuario
             bool confirmar = await JS.InvokeAsync<bool>("confirm",
                 "Expediente guardado correctamente.\n\n¿Deseas generar el PDF ahora?");
 
             if (confirmar)
             {
-                // Genera el PDF
                 await GenerarPDF();
             }
-            else
-            {
-                // Regresa al módulo
-                Navigation.NavigateTo("/menu/recursos-revision");
-            }
+
+            // ← IMPORTANTE:
+            // Ya NO te manda al menú cuando eliges "Cancelar".
+            // Simplemente se queda en la página.
         }
         else
         {
@@ -85,6 +82,7 @@
             await JS.InvokeVoidAsync("alert", "Error al guardar: " + error);
         }
     }
+
 
 
     //------------------------------------------------------
@@ -119,23 +117,5 @@
         }
     }
 
-    //------------------------------------------------------
-    // EXPORTAR PDF (BASE64)
-    //------------------------------------------------------
-    private async Task ExportarPDF()
-    {
-        var respuesta =
-            await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
-
-        if (!respuesta.IsSuccessStatusCode)
-        {
-            await JS.InvokeVoidAsync("alert", "Error al generar PDF");
-            return;
-        }
-
-        var pdfBytes = await respuesta.Content.ReadAsByteArrayAsync();
-        var base64 = Convert.ToBase64String(pdfBytes);
-
-        await JS.InvokeVoidAsync("downloadFileFromBytes", "ExpedienteRevision.pdf", base64);
-    }
+   
 }
