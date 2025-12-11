@@ -5,95 +5,99 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3 class="module-header">Búsqueda de Recursos de Revisión</h3>
-<p class="module-subtitle">Busque un recurso por folio:</p>
+<h3 class="module-header">Búsqueda de Expedientes</h3>
+<p class="module-subtitle">Escriba el folio o número de recurso para buscar:</p>
 
 <input class="form-control"
-       placeholder="Escriba el folio..."
-       value="@FolioBusqueda"
+       placeholder="Escriba el folio o número de recurso..."
+       @bind="FolioBusqueda"
        @oninput="Buscar" />
 
-@if (FolioBusqueda.Length > 0 && Resultados.Count == 0)
+@if (Resultados.Count == 0 && FolioBusqueda.Length > 0)
 {
-    <p class="text-muted mt-2">Folio no encontrado...</p>
+    <p class="text-muted mt-2">No se encontraron expedientes…</p>
 }
 
 @if (Resultados.Count > 0)
 {
-    <div class="table-responsive mt-4">
+    <div class="table-responsive mt-3">
         <table class="table table-bordered table-striped">
             <thead class="table-primary">
                 <tr>
-                    <th>Fecha Notif. Admisión</th>
-                    <th>Respuesta Solicitud</th>
+                    <th>Editar</th>
+                    <th>Núm. Recurso</th>
+                    <th>Estatus</th>
+                    <th>Res. Sentido</th>
+                    <th>Contenido Solicitud</th>
+                    <th>Nombre Recurrente</th>
+                    <th>Sentido Contestación</th>
+                    <th>Fecha Notif. Adm.</th>
+                    <th>Respuesta</th>
                     <th>Fecha Acuerdo</th>
                     <th>Contenido Acuerdo</th>
                     <th>Materia</th>
                     <th>Razón</th>
-                    <th>Sentido Resolución</th>
-                    <th>Fecha Notificación</th>
+                    <th>Fecha Notif.</th>
                     <th>Folio</th>
                     <th>Fecha Contestación</th>
                     <th>Fecha Acuerdo Final</th>
                     <th>Contenido Acuerdo Final</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
 
             <tbody>
-                @foreach (var item in Resultados)
+                @foreach (var row in Resultados)
                 {
                     <tr>
-                        <td>@Show(item.FechaNotificacionAdmision)</td>
-                        <td>@item.RespuestaSolicitud</td>
-                        <td>@Show(item.FechaAcuerdo)</td>
-                        <td>@item.ContenidoAcuerdo</td>
-
-                        <!-- MATERIA DEL RECURSO (DP / DAI) -->
                         <td>
-                            @if (IdEditando == item.IdExpediente)
+                            <button class="btn btn-warning btn-sm"
+                                    @onclick="@(() => row.IsEditing = !row.IsEditing)">
+                                @((row.IsEditing ? "Cancel" : "Editar"))
+                            </button>
+
+                            @if (row.IsEditing)
                             {
-                                <select class="form-control" @bind="item.MateriaRecurso">
-                                    <option value="">Seleccione...</option>
-                                    <option value="DP">DP</option>
-                                    <option value="DAI">DAI</option>
+                                <button class="btn btn-success btn-sm ms-2"
+                                        @onclick="@(() => Guardar(row))">
+                                    Guardar
+                                </button>
+                            }
+                        </td>
+
+                        @Cell(row, nameof(row.NumeroRecurso))
+                        @Cell(row, nameof(row.Estatus))
+                        @Cell(row, nameof(row.ResolucionSentido))
+                        @Cell(row, nameof(row.ContenidoSolicitud))
+                        @Cell(row, nameof(row.NombreRecurrente))
+                        @Cell(row, nameof(row.SentidoContestacion))
+                        @Cell(row, nameof(row.FechaNotificacionAdmision), true)
+                        @Cell(row, nameof(row.RespuestaSolicitud))
+                        @Cell(row, nameof(row.FechaAcuerdo), true)
+                        @Cell(row, nameof(row.ContenidoAcuerdo))
+
+                        @* MATERIA — ListBox *@
+                        <td>
+                            @if (row.IsEditing)
+                            {
+                                <select class="form-select form-select-sm"
+                                        @bind="row.MateriaRecurso">
+                                    <option value="">--</option>
+                                    <option>DAI</option>
+                                    <option>DP</option>
                                 </select>
                             }
                             else
                             {
-                                @item.MateriaRecurso
+                                @row.MateriaRecurso
                             }
                         </td>
 
-                        <td>@item.RazonInterposicion</td>
-                        <td>@item.SentidoResolucion</td>
-                        <td>@Show(item.FechaNotificacion)</td>
-                        <td>@item.FolioSolicitud</td>
-                        <td>@Show(item.FechaContestacionRecurso)</td>
-                        <td>@Show(item.FechaAcuerdoFinal)</td>
-                        <td>@item.ContenidoAcuerdoFinal</td>
-
-                        <td>
-                            @if (IdEditando == item.IdExpediente)
-                            {
-                                <button class="btn btn-success btn-sm"
-                                        @onclick="(() => GuardarFila(item))">
-                                    Guardar
-                                </button>
-
-                                <button class="btn btn-secondary btn-sm ms-2"
-                                        @onclick="CancelarEdicion">
-                                    Cancelar
-                                </button>
-                            }
-                            else
-                            {
-                                <button class="btn btn-warning btn-sm"
-                                        @onclick="(() => IniciarEdicion(item.IdExpediente))">
-                                    Editar
-                                </button>
-                            }
-                        </td>
+                        @Cell(row, nameof(row.RazonInterposicion))
+                        @Cell(row, nameof(row.FechaNotificacion), true)
+                        @Cell(row, nameof(row.FolioSolicitud))
+                        @Cell(row, nameof(row.FechaContestacionRecurso), true)
+                        @Cell(row, nameof(row.FechaAcuerdoFinal), true)
+                        @Cell(row, nameof(row.ContenidoAcuerdoFinal))
                     </tr>
                 }
             </tbody>
@@ -105,7 +109,23 @@
 
     private string FolioBusqueda = "";
     private List<ExpedienteRevisionDTO> Resultados = new();
-    private int? IdEditando = null;
+
+    // OPCIONES PARA LISTBOXES
+    private readonly string[] OpcionesEstatus = new[]
+    {
+        "En trámite",
+        "Concluido"
+    };
+
+    private readonly string[] OpcionesResolucionSentido = new[]
+    {
+        "Confirma",
+        "Sobresee",
+        "Modifica",
+        "Revoca",
+        "Dar Respuesta"
+    };
+    // FIN OPCIONES LISTBOXES
 
     private async Task Buscar(ChangeEventArgs e)
     {
@@ -114,49 +134,127 @@
         if (string.IsNullOrWhiteSpace(FolioBusqueda))
         {
             Resultados.Clear();
-            IdEditando = null;
             return;
         }
 
-        Resultados = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
-            $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
-        ) ?? new List<ExpedienteRevisionDTO>();
+        // La llamada a la API permanece igual, pero la API buscará en dos campos.
+        Resultados =
+            await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
+                $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
+            ) ?? new();
     }
 
-    private string Show(DateTime? dt) =>
-        dt?.ToString("yyyy-MM-dd") ?? "--";
-
-    private void IniciarEdicion(int id)
+    private async Task Guardar(ExpedienteRevisionDTO row)
     {
-        IdEditando = id;
-    }
-
-    private void CancelarEdicion()
-    {
-        IdEditando = null;
-    }
-
-    private async Task GuardarFila(ExpedienteRevisionDTO item)
-    {
-        bool confirmar = await JS.InvokeAsync<bool>("confirm",
-            "¿Deseas guardar los cambios?");
-
-        if (!confirmar)
-            return;
-
-        var resp = await Http.PutAsJsonAsync(
-            "api/RecursoRevision/Expediente/Actualizar",
-            item
-        );
+        var resp = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", row);
 
         if (resp.IsSuccessStatusCode)
         {
-            await JS.InvokeVoidAsync("alert", "Cambios guardados correctamente.");
-            IdEditando = null;
+            row.IsEditing = false;
+            await JS.InvokeVoidAsync("alert", "Cambios guardados.");
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "Error al guardar los cambios.");
+            await JS.InvokeVoidAsync("alert", "Error al guardar cambios.");
         }
     }
+
+    RenderFragment Cell(ExpedienteRevisionDTO row, string prop, bool isDate = false) => builder =>
+    {
+        builder.OpenElement(0, "td");
+
+        var valor = row.GetType().GetProperty(prop)?.GetValue(row);
+
+        // Identificadores de campo para Listbox
+        var isResolucionSentido = prop == nameof(ExpedienteRevisionDTO.ResolucionSentido);
+        var isEstatus = prop == nameof(ExpedienteRevisionDTO.Estatus);
+
+        // Determinar qué opciones usar (si aplica)
+        string[] opcionesListbox = null;
+        if (isResolucionSentido)
+            opcionesListbox = OpcionesResolucionSentido;
+        else if (isEstatus)
+            opcionesListbox = OpcionesEstatus;
+
+
+        if (row.IsEditing)
+        {
+            if (isDate)
+            {
+                // CAMPO DE FECHA
+                builder.OpenElement(1, "input");
+                builder.AddAttribute(2, "type", "date");
+                builder.AddAttribute(3, "class", "form-control form-control-sm");
+                builder.AddAttribute(4, "value", valor is DateTime dt ? dt.ToString("yyyy-MM-dd") : "");
+                builder.AddAttribute(5, "onchange",
+                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
+                    {
+                        if (DateTime.TryParse(e.Value?.ToString(), out var parsed))
+                            row.GetType().GetProperty(prop)?.SetValue(row, parsed);
+                        else
+                            row.GetType().GetProperty(prop)?.SetValue(row, null);
+                    }));
+                builder.CloseElement();
+            }
+            else if (opcionesListbox != null)
+            {
+                // CAMPO LISTBOX (Estatus o Resolución Sentido)
+                builder.OpenElement(1, "select");
+                builder.AddAttribute(2, "class", "form-select form-select-sm");
+                builder.AddAttribute(3, "onchange",
+                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
+                    {
+                        row.GetType().GetProperty(prop)?.SetValue(row, e.Value?.ToString());
+                    }));
+
+                // Opción por defecto
+                builder.OpenElement(4, "option");
+                builder.AddAttribute(5, "value", "");
+                builder.AddContent(6, "--Seleccione--");
+                builder.CloseElement();
+
+                // Opciones del Listbox
+                int seq = 7;
+                foreach (var opcion in opcionesListbox)
+                {
+                    builder.OpenElement(seq++, "option");
+                    builder.AddAttribute(seq++, "value", opcion);
+
+                    // Marca la opción seleccionada
+                    if (opcion == valor?.ToString())
+                    {
+                        builder.AddAttribute(seq++, "selected", true);
+                    }
+
+                    builder.AddContent(seq++, opcion);
+                    builder.CloseElement();
+                }
+
+                builder.CloseElement(); // Cierra el select
+            }
+            else
+            {
+                // CAMPO DE TEXTO SIMPLE (Por defecto)
+                builder.OpenElement(1, "input");
+                builder.AddAttribute(2, "class", "form-control form-control-sm");
+                builder.AddAttribute(3, "value", valor?.ToString() ?? "");
+                builder.AddAttribute(4, "onchange",
+                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
+                    {
+                        row.GetType().GetProperty(prop)?.SetValue(row, e.Value?.ToString());
+                    }));
+                builder.CloseElement();
+            }
+        }
+        else
+        {
+            // MODO DE VISUALIZACIÓN
+            if (isDate && valor is DateTime dt)
+                builder.AddContent(6, dt.ToString("dd/MM/yyyy"));
+            else
+                builder.AddContent(6, valor?.ToString() ?? "--");
+        }
+
+        builder.CloseElement();
+    };
 }

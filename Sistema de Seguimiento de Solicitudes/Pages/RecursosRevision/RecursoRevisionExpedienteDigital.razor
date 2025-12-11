@@ -13,42 +13,71 @@
     <table class="table table-bordered table-striped">
         <thead class="table-primary">
             <tr>
-                <th>Fecha de Notificación de Admisión</th>
-                <th>Respuesta de la Solicitud</th>
-                <th>Fecha de Acuerdo</th>
-                <th>Contenido del Acuerdo</th>
-                <th>Materia del Recurso</th>
-                <th>Razón de la Interposición</th>
-                <th>Sentido de la Resolución</th>
-                <th>Fecha de Notificación</th>
-                <th>Folio de la Solicitud</th>
-                <th>Fecha de Contestación del Recurso</th>
-                <th>Fecha de Acuerdo Final</th>
-                <th>Contenido del Acuerdo Final</th>
+                <th>Número de Recurso</th>
+                <th>Estatus</th>
+                <th>Resolución en Sentido</th>
+                <th>Contenido Solicitud</th>
+                <th>Nombre Recurrente</th>
+                <th>Sentido Contestación</th>
+                <th>Fecha Notificación Admisión</th>
+                <th>Respuesta Solicitud</th>
+                <th>Fecha Acuerdo</th>
+                <th>Contenido Acuerdo</th>
+                <th>Materia</th>
+                <th>Razón</th>
+                <th>Fecha Notificación</th>
+                <th>Folio</th>
+                <th>Fecha Contestación</th>
+                <th>Fecha Acuerdo Final</th>
+                <th>Contenido Acuerdo Final</th>
             </tr>
         </thead>
 
         <tbody>
             <tr>
+                <td><input class="form-control" @bind="Modelo.NumeroRecurso" /></td>
+
+                <td>
+                    <select class="form-select" @bind="Modelo.Estatus">
+                        <option value="">--Seleccione--</option>
+                        <option>En trámite</option>
+                        <option>Concluido</option>
+                    </select>
+                </td>
+
+                <td>
+                    <select class="form-select" @bind="Modelo.ResolucionSentido">
+                        <option value="">--Seleccione--</option>
+                        <option>Confirma</option>
+                        <option>Sobresee</option>
+                        <option>Modifica</option>
+                        <option>Revoca</option>
+                        <option>Dar Respuesta</option>
+                    </select>
+                </td>
+
+                <td><input class="form-control" @bind="Modelo.ContenidoSolicitud" /></td>
+                <td><input class="form-control" @bind="Modelo.NombreRecurrente" /></td>
+                <td><input class="form-control" @bind="Modelo.SentidoContestacion" /></td>
+
                 <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacionAdmision" /></td>
                 <td><input class="form-control" @bind="Modelo.RespuestaSolicitud" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdo" /></td>
                 <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
-                <select class="form-control" @bind="Modelo.MateriaRecurso">
-                    <option value="">Seleccione una opción...</option>
-                    <option value="DP">DP</option>
-                    <option value="DAI">DAI</option>
-                </select>
+
+                <td>
+                    <select class="form-select" @bind="Modelo.MateriaRecurso">
+                        <option value="">--Seleccione--</option>
+                        <option>DAI</option>
+                        <option>DP</option>
+                    </select>
+                </td>
+
                 <td><input class="form-control" @bind="Modelo.RazonInterposicion" /></td>
-                <td><input class="form-control" @bind="Modelo.SentidoResolucion" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacion" /></td>
                 <td><input class="form-control" @bind="Modelo.FolioSolicitud" /></td>
                 <td><input type="date" class="form-control" @bind="Modelo.FechaContestacionRecurso" /></td>
-
-                <!-- ✔ NUEVO CAMPO -->
                 <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdoFinal" /></td>
-
-                <!-- ✔ SIGUE IGUAL -->
                 <td><input class="form-control" @bind="Modelo.ContenidoAcuerdoFinal" /></td>
             </tr>
         </tbody>
@@ -56,6 +85,7 @@
 </div>
 
 <button class="btn btn-primary mt-3 me-2" @onclick="Guardar">Guardar</button>
+
 <button class="btn btn-danger mt-3" @onclick="GenerarPDF">
     <i class="bi bi-filetype-pdf"></i> Descargar PDF
 </button>
@@ -66,51 +96,40 @@
 
     private async Task Guardar()
     {
-        var respuesta = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
+        var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
 
-        if (respuesta.IsSuccessStatusCode)
+        if (resp.IsSuccessStatusCode)
         {
-            bool confirmar = await JS.InvokeAsync<bool>("confirm",
-                "Expediente guardado correctamente.\n\n¿Deseas generar el PDF ahora?");
+            bool generar = await JS.InvokeAsync<bool>("confirm",
+                "Expediente guardado correctamente.\n\n¿Desea generar PDF?");
 
-            if (confirmar)
-            {
+            if (generar)
                 await GenerarPDF();
-            }
         }
         else
         {
-            var error = await respuesta.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", "Error al guardar: " + error);
+            await JS.InvokeVoidAsync("alert", "Error al guardar.");
         }
     }
 
     private async Task GenerarPDF()
     {
-        try
+        var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+
+        if (resp.IsSuccessStatusCode)
         {
-            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+            var pdf = await resp.Content.ReadAsByteArrayAsync();
 
-            if (resp.IsSuccessStatusCode)
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
             {
-                var pdfBytes = await resp.Content.ReadAsByteArrayAsync();
-
-                await JS.InvokeVoidAsync("downloadFileFromByteArray", new
-                {
-                    ByteArray = pdfBytes,
-                    FileName = "ExpedienteRevision.pdf",
-                    ContentType = "application/pdf"
-                });
-            }
-            else
-            {
-                await JS.InvokeVoidAsync("alert", "Error al generar el PDF.");
-            }
+                ByteArray = pdf,
+                FileName = "ExpedienteRevision.pdf",
+                ContentType = "application/pdf"
+            });
         }
-        catch (Exception ex)
+        else
         {
-            await JS.InvokeVoidAsync("alert", ex.Message);
+            await JS.InvokeVoidAsync("alert", "Error al generar PDF.");
         }
     }
-
 }
