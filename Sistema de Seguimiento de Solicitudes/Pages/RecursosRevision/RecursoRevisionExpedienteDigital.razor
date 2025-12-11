@@ -90,28 +90,104 @@
     <i class="bi bi-filetype-pdf"></i> Descargar PDF
 </button>
 
+<button class="btn btn-info ms-2" @onclick="() => MostrarPanelPDF = true">
+    Agregar PDF
+</button>
+
+<button class="btn btn-secondary ms-2" @onclick="MostrarDocumentosGuardados">
+    Documentos Guardados
+</button>
+
+<!-- PANEL PARA AGREGAR PDF -->
+@if (MostrarPanelPDF)
+{
+    <div class="card p-3 mt-3 border-info">
+        <h5>Agregar PDF al expediente</h5>
+
+        <InputFile OnChange="OnFileSelected" accept="application/pdf" />
+
+        @if (!string.IsNullOrEmpty(NombreArchivo))
+        {
+            <p class="mt-2 text-muted">Archivo seleccionado: <b>@NombreArchivo</b></p>
+        }
+
+        <button class="btn btn-success mt-2" @onclick="GuardarPDF">Guardar</button>
+        <button class="btn btn-secondary mt-2 ms-2" @onclick="() => MostrarPanelPDF = false">Cancelar</button>
+    </div>
+}
+
+<!-- PANEL DOCUMENTOS GUARDADOS -->
+@if (MostrarListaDocumentos)
+{
+    <div class="card p-3 mt-3 border-secondary">
+        <h5>Documentos Guardados</h5>
+
+        @if (ListaPDFs.Count == 0)
+        {
+            <p class="text-muted">No hay documentos guardados.</p>
+        }
+        else
+        {
+            <table class="table table-bordered mt-2">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pdf in ListaPDFs)
+                    {
+                        <tr>
+                            <td>@pdf.NombreArchivo</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => DescargarPDF(pdf.IdArchivo)">
+                                    Descargar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <button class="btn btn-outline-secondary mt-2"
+                @onclick="() => MostrarListaDocumentos = false">
+            Cerrar
+        </button>
+    </div>
+}
+
 @code {
 
     private ExpedienteRevisionDTO Modelo = new ExpedienteRevisionDTO();
 
+    // ===============================================================
+    // GUARDAR EXPEDIENTE
+    // ===============================================================
     private async Task Guardar()
     {
         var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
 
         if (resp.IsSuccessStatusCode)
         {
-            bool generar = await JS.InvokeAsync<bool>("confirm",
-                "Expediente guardado correctamente.\n\n¿Desea generar PDF?");
+            var json = await resp.Content.ReadFromJsonAsync<CreacionExpedienteDTO>();
+            Modelo.IdExpediente = json?.IdExpedienteCreado ?? 0;
 
-            if (generar)
+            if (await JS.InvokeAsync<bool>("confirm",
+                "Expediente guardado correctamente.\n\n¿Desea generar PDF?"))
+            {
                 await GenerarPDF();
+            }
         }
         else
-        {
             await JS.InvokeVoidAsync("alert", "Error al guardar.");
-        }
     }
 
+    // ===============================================================
+    // GENERAR PDF (EXPEDIENTE)
+    // ===============================================================
     private async Task GenerarPDF()
     {
         var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
@@ -128,8 +204,108 @@
             });
         }
         else
-        {
             await JS.InvokeVoidAsync("alert", "Error al generar PDF.");
-        }
     }
+
+    // ===============================================================
+    // SUBIR PDF (INDEPENDIENTE DEL EXPEDIENTE)
+    // ===============================================================
+
+    private bool MostrarPanelPDF = false;
+    private IBrowserFile? ArchivoSeleccionado;
+    private string NombreArchivo = "";
+
+    public class ArchivoPDFDTO
+    {
+        public int IdArchivo { get; set; }
+        public string NombreArchivo { get; set; } = "";
+    }
+
+    private List<ArchivoPDFDTO> ListaPDFs = new();
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        ArchivoSeleccionado = e.File;
+        NombreArchivo = e.File.Name;
+    }
+
+    private async Task GuardarPDF()
+    {
+        if (ArchivoSeleccionado == null)
+        {
+            await JS.InvokeVoidAsync("alert", "Selecciona un PDF primero.");
+            return;
+        }
+
+        // Crear expediente vacío si no existe
+        if (Modelo.IdExpediente == 0)
+        {
+            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/CrearVacio", new { });
+            var json = await resp.Content.ReadFromJsonAsync<CreacionExpedienteDTO>();
+            Modelo.IdExpediente = json!.IdExpedienteCreado;
+        }
+
+        var content = new MultipartFormDataContent();
+        var stream = ArchivoSeleccionado.OpenReadStream(long.MaxValue);
+
+        content.Add(new StreamContent(stream), "archivo", ArchivoSeleccionado.Name);
+        content.Add(new StringContent(Modelo.IdExpediente.ToString()), "idExpediente");
+
+        var resp2 = await Http.PostAsync("api/RecursoRevision/Expediente/SubirPDF", content);
+
+        if (resp2.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "PDF guardado correctamente.");
+            MostrarPanelPDF = false;
+            await CargarTodosLosPDFs();
+        }
+        else
+            await JS.InvokeVoidAsync("alert", "Error al guardar PDF.");
+    }
+
+    // ===============================================================
+    // LISTAR TODOS LOS PDFs DE LA BD
+    // ===============================================================
+    private bool MostrarListaDocumentos = false;
+
+    private async Task MostrarDocumentosGuardados()
+    {
+        MostrarListaDocumentos = true;
+        await CargarTodosLosPDFs();
+    }
+
+    private async Task CargarTodosLosPDFs()
+    {
+        ListaPDFs =
+            await Http.GetFromJsonAsync<List<ArchivoPDFDTO>>("api/RecursoRevision/Expediente/PDFs/Todos")
+            ?? new();
+    }
+
+    // ===============================================================
+    // DESCARGAR PDF INDIVIDUAL
+    // ===============================================================
+    private async Task DescargarPDF(int idArchivo)
+    {
+        var resp = await Http.GetAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "Error al descargar PDF.");
+            return;
+        }
+
+        // EXTRAER NOMBRE REAL DEL ARCHIVO DESDE LOS HEADERS HTTP
+        var contentDisposition = resp.Content.Headers.ContentDisposition;
+        string nombreReal = contentDisposition?.FileNameStar ?? contentDisposition?.FileName ?? $"archivo_{idArchivo}.pdf";
+
+        var bytes = await resp.Content.ReadAsByteArrayAsync();
+
+        await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+        {
+            ByteArray = bytes,
+            FileName = nombreReal,   // 👈 USAR EL NOMBRE REAL
+            ContentType = "application/pdf"
+        });
+    }
+
 }

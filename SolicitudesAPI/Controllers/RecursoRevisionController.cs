@@ -348,6 +348,135 @@ namespace SolicitudesAPI.Controllers
 
             return Ok(lista);
         }
+        [HttpPost("Expediente/SubirPDF")]
+        public async Task<IActionResult> SubirPDF([FromForm] int idExpediente, [FromForm] IFormFile archivo)
+        {
+            if (archivo == null || archivo.Length == 0)
+                return BadRequest("Archivo vacío.");
+
+            using var ms = new MemoryStream();
+            await archivo.CopyToAsync(ms);
+
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"
+        INSERT INTO MT_EXPEDIENTE_ARCHIVOS (ID_EXPEDIENTE, NOMBRE_ARCHIVO, PDF_DATA)
+        VALUES (@ID, @NOMBRE, @PDF)
+    ";
+
+            using var cmd = new SqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@ID", idExpediente);
+            cmd.Parameters.AddWithValue("@NOMBRE", archivo.FileName);
+            cmd.Parameters.AddWithValue("@PDF", ms.ToArray());
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return Ok(new { mensaje = "PDF guardado" });
+        }
+        [HttpGet("Expediente/PDFs")]
+        public async Task<IActionResult> ObtenerPDFs(int idExpediente)
+        {
+            var lista = new List<object>();
+
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"
+        SELECT ID_ARCHIVO, NOMBRE_ARCHIVO
+        FROM MT_EXPEDIENTE_ARCHIVOS
+        WHERE ID_EXPEDIENTE = @ID
+        ORDER BY ID_ARCHIVO DESC
+    ";
+
+            using var cmd = new SqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@ID", idExpediente);
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new
+                {
+                    IdArchivo = dr.GetInt32(0),
+                    NombreArchivo = dr.GetString(1)
+                });
+            }
+
+            return Ok(lista);
+        }
+
+        [HttpGet("Expediente/PDF/{idArchivo}")]
+        public async Task<IActionResult> DescargarPDF(int idArchivo)
+        {
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"SELECT NOMBRE_ARCHIVO, PDF_DATA 
+                     FROM MT_EXPEDIENTE_ARCHIVOS 
+                     WHERE ID_ARCHIVO = @ID";
+
+            using var cmd = new SqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@ID", idArchivo);
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            if (!dr.Read())
+                return NotFound();
+
+            string nombre = dr.GetString(0);
+            byte[] data = (byte[])dr["PDF_DATA"];
+
+            // ESTA es la forma correcta
+            return File(data, "application/pdf", nombre);
+        }
+
+
+
+
+        [HttpPost("Expediente/CrearVacio")]
+        public async Task<IActionResult> CrearExpedienteVacio()
+        {
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"
+        INSERT INTO MT_EXPEDIENTE_RECURSO (FECHA_NOTIFICACION_ADMISION)
+        OUTPUT INSERTED.ID_EXPEDIENTE
+        VALUES (NULL)
+    ";
+
+            using var cmd = new SqlCommand(query, con);
+            int nuevoId = (int)await cmd.ExecuteScalarAsync();
+
+            return Ok(new { IdExpedienteCreado = nuevoId });
+        }
+        [HttpGet("Expediente/PDFs/Todos")]
+        public async Task<IActionResult> ObtenerTodosLosPDFs()
+        {
+            var lista = new List<object>();
+
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+
+            string query = @"
+        SELECT ID_ARCHIVO, NOMBRE_ARCHIVO, FECHA_REGISTRO
+        FROM MT_EXPEDIENTE_ARCHIVOS
+        ORDER BY FECHA_REGISTRO DESC";
+
+            using var cmd = new SqlCommand(query, con);
+            using var dr = await cmd.ExecuteReaderAsync();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new
+                {
+                    IdArchivo = dr.GetInt32(0),
+                    NombreArchivo = dr.GetString(1),
+                    FechaRegistro = dr["FECHA_REGISTRO"]?.ToString()
+                });
+            }
+
+            return Ok(lista);
+        }
 
 
     }
