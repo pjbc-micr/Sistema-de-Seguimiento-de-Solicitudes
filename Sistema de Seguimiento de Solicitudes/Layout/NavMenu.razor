@@ -29,55 +29,51 @@
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="/menu/modulo-solicitudes/Calendario">
-                    <span class="bi bi-calendar-event-fill me-2" aria-hidden="true"></span> Calendario
+                    <span class="bi bi-calendar-event-fill me-2"></span> Calendario
                 </NavLink>
             </div>
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="/menu/modulo-solicitudes" Match="NavLinkMatch.All">
-                    <span class="bi bi-folder-fill me-2" aria-hidden="true"></span> Módulo Solicitudes
+                    <span class="bi bi-folder-fill me-2"></span> Módulo Solicitudes
                 </NavLink>
             </div>
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="/menu/modulo-solicitudes/inicio-solicitudes">
-                    <span class="bi bi-inboxes-fill" aria-hidden="true"></span> Inicio de Solicitudes
+                    <span class="bi bi-inboxes-fill"></span> Inicio de Solicitudes
                 </NavLink>
             </div>
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="/menu/modulo-solicitudes/historial-solicitudes">
-                    <span class="bi bi-clock-history me-2" aria-hidden="true"></span> Historial de Solicitudes
+                    <span class="bi bi-clock-history me-2"></span> Historial de Solicitudes
                 </NavLink>
             </div>
 
-            @* Solo para ADMINISTRADOR o SUPERVISOR *@
             <AuthorizeView Roles="ADMINISTRADOR, Admin">
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="/{id?}">
-                        <span class="bi bi-trash-fill me-2" aria-hidden="true"></span> Eliminar Solicitudes
+                        <span class="bi bi-trash-fill me-2"></span> Eliminar Solicitudes
                     </NavLink>
                 </div>
             </AuthorizeView>
 
-            @* ✔ ENLACE CORRECTO A LA BANDEJA DEL MÓDULO DE RECURSOS DE REVISIÓN *@
-            <li class="nav-item px-3">
-                <NavLink class="nav-link" href="/menu/recursos-revision/registro">
-                    Recursos de Revisión
-                </NavLink>
-            </li>
+            @* ❌ SE ELIMINÓ ACCESO “Recursos de Revisión” EN ESTE MÓDULO *@
         }
+
         @* ============================================================
-   MÓDULO RECURSOS DE REVISIÓN - accesos directos
-   ============================================================ *@
+           MÓDULO RECURSOS DE REVISIÓN - accesos directos
+           ============================================================ *@
         <div class="nav-group px-3 mt-3">
             <h6 class="text-white fw-bold">Recursos de Revisión</h6>
 
-            <div class="nav-item px-2">
+            @* ❌ SE ELIMINÓ: ➤ Agregar Recurso *@
+            @* <div class="nav-item px-2">
                 <NavLink class="nav-link" href="/menu/recursos-revision/registro/agregar">
                     ➤ Agregar Recurso
                 </NavLink>
-            </div>
+            </div> *@
 
             <div class="nav-item px-2">
                 <NavLink class="nav-link" href="/menu/recursos-revision/registro/expediente">
@@ -98,21 +94,15 @@
             </div>
         </div>
 
-
-        @* Aquí agregarás los demás módulos después *@
-
     </nav>
 </div>
 
 @code {
-    // Detecta si estamos dentro del módulo de solicitudes
     private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes");
 
     private bool collapseNavMenu = true;
+
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
 }

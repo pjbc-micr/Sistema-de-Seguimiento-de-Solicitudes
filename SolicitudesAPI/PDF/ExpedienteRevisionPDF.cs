@@ -27,38 +27,11 @@ namespace SolicitudesAPI.PDF
                 page.Margin(30);
 
                 // ======================================================
-                // ENCABEZADO CON LOGO + TÍTULO
+                // ENCABEZADO CON  TÍTULO
                 // ======================================================
                 page.Header().Row(row =>
                 {
-                    // LOGO
-                    row.RelativeItem(1).Column(col =>
-                    {
-                        try
-                        {
-                            var logoPath = Path.Combine(
-                                "Sistema de Seguimiento de Solicitudes",
-                                "wwwroot",
-                                "LogoPortal.png"
-                            );
-
-                            if (File.Exists(logoPath))
-                            {
-                                // CORRECCIÓN: Usar la nueva sintaxis de ImageDescriptor
-                                col.Item().Image(logoPath).FitWidth();
-                            }
-                            else
-                            {
-                                col.Item().Text("LOGO NO ENCONTRADO")
-                                    .FontSize(10).Italic();
-                            }
-                        }
-                        catch
-                        {
-                            col.Item().Text("Error al cargar logo")
-                                .FontSize(10);
-                        }
-                    });
+                    
 
                     // TÍTULO - CORRECCIÓN 1: Aplicar AlignCenter al contenedor (.Item())
                     row.RelativeItem(3).Column(col =>

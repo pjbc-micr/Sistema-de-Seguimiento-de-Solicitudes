@@ -5,13 +5,6 @@
 
 <div class="row mt-4">
 
-    <div class="card opcion-modulo" @onclick="IrAgregar">
-        <div class="card-body text-center">
-            <h5 class="card-title text-primary">Agregar Recurso de Revisión</h5>
-            <p class="card-text">Registrar un nuevo recurso.</p>
-        </div>
-    </div>
-
     <div class="card opcion-modulo" @onclick="IrExpedienteDigital">
         <div class="card-body text-center">
             <h5 class="card-title text-primary">Expediente Digital</h5>
@@ -24,14 +17,8 @@
 @code {
     [Inject] NavigationManager? Navigation { get; set; }
 
-    void IrAgregar()
-    {
-        Navigation?.NavigateTo("/menu/recursos-revision/registro/agregar");
-    }
-
     void IrExpedienteDigital()
     {
         Navigation?.NavigateTo("/menu/recursos-revision/registro/expediente");
     }
 }
-
