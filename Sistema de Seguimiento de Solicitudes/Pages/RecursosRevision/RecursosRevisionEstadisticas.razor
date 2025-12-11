@@ -4,9 +4,11 @@
 @inject HttpClient Http
 
 <h3 class="text-primary">Bandeja de Datos Estadísticos</h3>
-<p class="text-secondary">Filtra por mes y/o año según Fecha de Acuerdo</p>
+<p class="text-secondary">Filtra por mes, año y materia según la Fecha de Acuerdo Final</p>
 
 <div class="row g-2 align-items-center mb-3">
+
+    <!-- MES -->
     <div class="col-auto">
         <select class="form-select" @bind="MesSeleccionado">
             <option value="">— Mes —</option>
@@ -17,10 +19,25 @@
         </select>
     </div>
 
+    <!-- AÑO -->
     <div class="col-auto">
-        <input type="number" class="form-control" placeholder="Año (ej. 2025)" @bind="AnioSeleccionadoString" style="width:120px;" />
+        <input type="number"
+               class="form-control"
+               placeholder="Año (ej. 2025)"
+               @bind="AnioSeleccionadoString"
+               style="width:120px;" />
     </div>
 
+    <!-- MATERIA -->
+    <div class="col-auto">
+        <select class="form-select" @bind="MateriaSeleccionada" style="width:150px;">
+            <option value="">— Materia —</option>
+            <option value="DAI">DAI</option>
+            <option value="DP">DP</option>
+        </select>
+    </div>
+
+    <!-- BOTONES -->
     <div class="col-auto">
         <button class="btn btn-primary" @onclick="Cargar">Buscar</button>
         <button class="btn btn-secondary ms-2" @onclick="Limpiar">Limpiar</button>
@@ -63,6 +80,8 @@ else
 @code {
     private int? MesSeleccionado = null;
     private string AnioSeleccionadoString = "";
+    private string MateriaSeleccionada = "";   // ✔ NUEVO CAMPO
+
     private List<EstadisticaDTO> Lista = new();
     private bool Cargando = false;
 
@@ -72,13 +91,24 @@ else
         Lista.Clear();
 
         int? anio = null;
-        if (int.TryParse(AnioSeleccionadoString, out var y)) anio = y;
+        if (int.TryParse(AnioSeleccionadoString, out var y))
+            anio = y;
 
         string url = "api/RecursoRevision/Estadisticas";
+
         var query = new List<string>();
-        if (MesSeleccionado.HasValue) query.Add($"mes={MesSeleccionado.Value}");
-        if (anio.HasValue) query.Add($"anio={anio.Value}");
-        if (query.Count > 0) url += "?" + string.Join("&", query);
+
+        if (MesSeleccionado.HasValue)
+            query.Add($"mes={MesSeleccionado.Value}");
+
+        if (anio.HasValue)
+            query.Add($"anio={anio.Value}");
+
+        if (!string.IsNullOrWhiteSpace(MateriaSeleccionada))
+            query.Add($"materia={MateriaSeleccionada}");
+
+        if (query.Count > 0)
+            url += "?" + string.Join("&", query);
 
         try
         {
@@ -99,6 +129,7 @@ else
     {
         MesSeleccionado = null;
         AnioSeleccionadoString = "";
+        MateriaSeleccionada = "";   // ✔ LIMPIA EL FILTRO
         Lista.Clear();
     }
 }

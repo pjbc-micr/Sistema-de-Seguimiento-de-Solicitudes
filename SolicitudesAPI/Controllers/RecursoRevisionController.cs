@@ -238,5 +238,117 @@ namespace SolicitudesAPI.Controllers
 
             return Ok(new { mensaje = "Expediente actualizado correctamente" });
         }
+        // ============================================================
+        //   ESTADÍSTICAS USANDO SOLO LA TABLA MT_EXPEDIENTE_RECURSO
+        // ============================================================
+        [HttpGet("Estadisticas")]
+        public async Task<IActionResult> ObtenerEstadisticas(
+         [FromQuery] int? mes,
+         [FromQuery] int? anio,
+         [FromQuery] string? materia)
+            {
+                var lista = new List<EstadisticaDTO>();
+
+                string query = @"
+                    SELECT 'En Trámite' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE ESTATUS = 'En Trámite'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Concluido' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE ESTATUS = 'Concluido'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Resolución en sentido confirma' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE RESOLUCION_SENTIDO = 'Confirma'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Resolución en sentido sobresee' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE RESOLUCION_SENTIDO = 'Sobresee'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Resolución en sentido modifica' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE RESOLUCION_SENTIDO = 'Modifica'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Resolución en sentido revoca' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE RESOLUCION_SENTIDO = 'Revoca'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+
+                    UNION ALL
+
+                    SELECT 'Resolución en sentido dar respuesta' AS Concepto,
+                           COUNT(*) AS Cantidad,
+                           COALESCE(STRING_AGG('(' + COALESCE(NUMERO_RECURSO,'') + ')', ' '), '') AS Recursos
+                    FROM MT_EXPEDIENTE_RECURSO
+                    WHERE RESOLUCION_SENTIDO = 'Dar Respuesta'
+                      AND (@mes IS NULL OR MONTH(FECHA_ACUERDO_FINAL) = @mes)
+                      AND (@anio IS NULL OR YEAR(FECHA_ACUERDO_FINAL) = @anio)
+                      AND (@materia IS NULL OR MATERIA_RECURSO = @materia)
+                ";
+
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            using var cmd = new SqlCommand(query, con);
+
+            cmd.Parameters.AddWithValue("@mes", mes.HasValue ? (object)mes.Value : DBNull.Value);
+            cmd.Parameters.AddWithValue("@anio", anio.HasValue ? (object)anio.Value : DBNull.Value);
+            cmd.Parameters.AddWithValue("@materia", string.IsNullOrWhiteSpace(materia) ? (object)DBNull.Value : materia);
+
+            await con.OpenAsync();
+            using var dr = await cmd.ExecuteReaderAsync();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new EstadisticaDTO
+                {
+                    Concepto = dr["Concepto"]?.ToString() ?? "",
+                    Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                    Recursos = dr["Recursos"]?.ToString() ?? ""
+                });
+            }
+
+            return Ok(lista);
+        }
+
+
     }
 }
