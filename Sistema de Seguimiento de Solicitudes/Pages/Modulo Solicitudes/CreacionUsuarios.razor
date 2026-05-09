@@ -10,177 +10,196 @@
 @using SolicitudesShared
 @using System.Text.Json
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
+@using MudBlazor
 
 @inject IUsuarioService UsuarioService
 @inject SweetAlertService Swal
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject IExpedienteService ExpedienteService
-@inject HttpClient Http 
+@inject HttpClient Http
 
-<h3>Creacion de Usuarios</h3>
+<PageTitle>Gestión de Usuarios</PageTitle>
 
-<PageTitle>Crear Usuario</PageTitle>
+<div class="page-container">
+    <div class="header-flex">
+        <h2 class="page-title">Gestión de Usuarios</h2>
+        <button class="btn-new" @onclick="MostrarFormulario">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Style="width: 20px; height: 20px; flex-shrink: 0;" />
+            Nuevo Usuario
+        </button>
+    </div>
 
-<div class="d-flex align-items-center gap-2 mb-3">
-    <input type="text" class="form-control" placeholder="🔍 Buscar por Nombre, Id, Rol..." @bind="Filtro" @bind:event="oninput" style="flex: 1;" />
+    <div class="search-bar-wrapper">
+        <div class="search-container">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Style="width: 20px; height: 20px; flex-shrink: 0; position: absolute; left: 16px; top: 12px; color: #94a3b8;" />
+            <input type="text" class="search-input" placeholder="Buscar por nombre, ID o rol..." @bind="Filtro" @bind:event="oninput" />
+        </div>
+    </div>
 
-    <!-- Botón para agregar nuevo Usuario -->
-    <button class="btn-agregar" @onclick="MostrarFormulario"> Agregar Nuevo Usuario </button>
-</div>
-
-<!-- Modal de formulario para creación de usuarios -->
-@if (MostrarFormularioModal)
-{
-    <div class="modal">
-        <div class="modal-contenido">
-            <h4>Nuevo Usuario</h4>
-            <EditForm Model="NuevoUsuario" OnValidSubmit="GuardarUsuario">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <div>
-                    <label for="Nombre">Nombre del usuario: </label>
-                    <InputText id="Nombre" @bind-Value="NuevoUsuario.NombreUsuario" />
-
-                    <label for="password">Contraseña: </label>
-                    <div class="password-container">
-                        <InputText id="password"
-                                   class="form-control input-password"
-                                   type="@(_mostrarPassword ? "text" : "password")"
-                                   @bind-Value="NuevoUsuario.password" />
-                        <button type="button" class="toggle-password" @onclick="AlternarVisibilidad" style="margin: 0px;">
-                            <i class="bi @( _mostrarPassword ? "bi-eye-slash" : "bi-eye" )"></i>
-                        </button>
-                    </div>
-
-                    <label for="Rol">Rol: </label>
-                    <InputSelect id="Rol" @bind-Value="NuevoUsuario.Rol">
-                        <option value="" disabled selected>Selecciona una opción:</option>
-                        @foreach (var Rol in ListaRoles)
-                        {
-                            <option value="@Rol">@Rol</option>
-                        }
-                    </InputSelect>
-
-                    @if (!string.IsNullOrEmpty(DescripcionRolSeleccionado))
+    <div class="table-card">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>Nombre de Usuario</th>
+                    <th style="text-align: center;">Rol de Acceso</th>
+                    <th style="text-align: center; width: 180px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (UsuariosFiltrados != null && UsuariosFiltrados.Any())
+                {
+                    @foreach (var usuario in PagedUsuarios)
                     {
-                        <p style="font-size: 0.85rem; color: #555; margin-top: 0.25rem;">
-                            @DescripcionRolSeleccionado
-                        </p>
+                        <tr>
+                            <td class="text-id">#@usuario.Id</td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">@usuario.NombreUsuario.Substring(0, 1).ToUpper()</div>
+                                    <span class="text-nombre">@usuario.NombreUsuario</span>
+                                </div>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="role-badge @GetRoleClass(usuario.Rol)">@usuario.Rol</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="actions-wrapper">
+                                    <button class="btn-action-outline" @onclick="() => AbrirModalCambioContrasena(usuario)" title="Cambiar Contraseña">
+                                        <MudIcon Icon="@Icons.Material.Filled.LockReset" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                                    </button>
+                                    <button class="btn-action-danger" @onclick="() => Eliminar(usuario.Id)" title="Eliminar Usuario">
+                                        <MudIcon Icon="@Icons.Material.Filled.DeleteOutline" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                </div>
-
-                <button type="submit">Guardar</button>
-                <button type="button" @onclick="CerrarFormulario">Cancelar</button>
-            </EditForm>
-        </div>
-    </div>
-}
-
-<!-- Modal de formulario para cambio de contraseña -->
-@if (MostrarModalCambioContrasena)
-{
-    <div class="modal" tabindex="-1" role="dialog">
-        <div class="modal-contenido" role="document">
-            <h4>Cambiar contraseña - @UsuarioCambioContrasena.NombreUsuario</h4>
-            <EditForm Model="CambioContrasenaModel" OnValidSubmit="GuardarCambioContrasena">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <label for="nuevaPass">Nueva contraseña:</label>
-                <div class="password-container">
-                    <InputText id="nuevaPass"
-                               class="form-control input-password"
-                               type="@(_mostrarPasswordCambio ? "text" : "password")"
-                               @bind-Value="CambioContrasenaModel.NuevaContrasena"
-                               autocomplete="new-password" />
-                    <button type="button" class="toggle-password" @onclick="() => _mostrarPasswordCambio = !_mostrarPasswordCambio" aria-label="Mostrar/Ocultar contraseña">
-                        <i class="bi @(_mostrarPasswordCambio ? "bi-eye-slash" : "bi-eye")"></i>
-                    </button>
-                </div>
-
-                <button type="submit" class="btn btn-primary mt-3">Guardar</button>
-                <button type="button" class="btn btn-secondary mt-3" @onclick="CerrarModalCambioContrasena">Cancelar</button>
-            </EditForm>
-        </div>
-    </div>
-}
-
-<div class="table-responsive" style="text-align: center;">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>NOMBRE</th>
-                <th>ROL</th>
-                <th>ACCIONES</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (UsuariosFiltrados != null && UsuariosFiltrados.Any())
-            {
-                @foreach (var usuario in PagedUsuarios)
+                }
+                else
                 {
                     <tr>
-                        <td>@usuario.Id</td>
-                        <td>@usuario.NombreUsuario</td>
-                        <td>@usuario.Rol</td>
-                        <td>
-                            <button class="btn btn-primary me-2" @onclick="() => AbrirModalCambioContrasena(usuario)">
-                                <i class="bi bi-key-fill"></i> Cambiar Contraseña
-                            </button>
-                            <button class="btn btn-danger" @onclick="() => Eliminar(usuario.Id)">
-                                <i class="bi bi-trash"></i> Eliminar
-                            </button>
+                        <td colspan="4" class="empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.GroupOff" Style="width: 48px; height: 48px; flex-shrink: 0; color: #cbd5e1; margin-bottom: 1rem;" />
+                            <p>No se encontraron usuarios registrados.</p>
                         </td>
                     </tr>
                 }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="7" style="text-align: center; font-size: 30px; font-weight: bold; color: #ff0000; padding: 15px; background-color: #ffecec; border: 1px solid #ffaaaa;">
-                        No se encontraron resultados.
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+
+        <div class="pagination-container">
+            <button class="btn-pag" @onclick="PrevPage" disabled="@(currentPage <= 1)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 20px; height: 20px; flex-shrink: 0;" />
+            </button>
+            <div class="page-numbers">
+                Página <span>@currentPage</span> de @totalPages
+            </div>
+            <button class="btn-pag" @onclick="NextPage" disabled="@(currentPage >= totalPages)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 20px; height: 20px; flex-shrink: 0;" />
+            </button>
+        </div>
+    </div>
 </div>
 
-<div class="d-flex justify-content-center align-items-center mt-3" style="padding-bottom: 16px">
-    <button class="btn btn-primary mx-2" style="width: 90px" @onclick="PrevPage" disabled="@(currentPage <= 1)">
-        Anterior
-    </button>
-    <span>Página @currentPage de @totalPages</span>
-    <button class="btn btn-primary mx-2" style="width: 90px" @onclick="NextPage" disabled="@(currentPage >= totalPages)">
-        Siguiente
-    </button>
-</div>
+@if (MostrarFormularioModal)
+{
+    <div class="modern-modal-backdrop" @onclick="CerrarFormulario">
+        <div class="modern-modal-box" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3>Nuevo Usuario</h3>
+                <button class="close-btn" @onclick="CerrarFormulario">&times;</button>
+            </div>
+            <EditForm Model="NuevoUsuario" OnValidSubmit="GuardarUsuario">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Nombre de Usuario</label>
+                        <InputText class="modern-input" @bind-Value="NuevoUsuario.NombreUsuario" placeholder="Ej. juan.perez" />
+                    </div>
+                    <div class="input-group">
+                        <label>Contraseña</label>
+                        <div class="pass-wrapper">
+                            <InputText type="@(_mostrarPassword ? "text" : "password")" class="modern-input" @bind-Value="NuevoUsuario.password" placeholder="********" />
+                            <button type="button" class="eye-btn" @onclick="AlternarVisibilidad">
+                                <MudIcon Icon="@(_mostrarPassword? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Style="width: 20px; height: 20px; flex-shrink: 0;" />
+                            </button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Rol asignado</label>
+                        <InputSelect class="modern-input" @bind-Value="NuevoUsuario.Rol">
+                            <option value="" disabled selected>Selecciona un rol</option>
+                            @foreach (var rol in ListaRoles)
+                            {
+                                <option value="@rol">@rol</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    @if (!string.IsNullOrEmpty(DescripcionRolSeleccionado))
+                    {
+                        <div class="rol-info-box">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Style="width: 16px; height: 16px; flex-shrink: 0; margin-right: 8px;" />
+                            @DescripcionRolSeleccionado
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" @onclick="CerrarFormulario">Cancelar</button>
+                    <button type="submit" class="btn-save">Crear Usuario</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (MostrarModalCambioContrasena)
+{
+    <div class="modern-modal-backdrop" @onclick="CerrarModalCambioContrasena">
+        <div class="modern-modal-box" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3>Nueva Contraseña</h3>
+                <button class="close-btn" @onclick="CerrarModalCambioContrasena">&times;</button>
+            </div>
+            <EditForm Model="CambioContrasenaModel" OnValidSubmit="GuardarCambioContrasena">
+                <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <p class="mb-4 text-muted">Estableciendo nueva clave para <strong>@UsuarioCambioContrasena.NombreUsuario</strong></p>
+                    <div class="input-group">
+                        <label>Nueva contraseña</label>
+                        <div class="pass-wrapper">
+                            <InputText type="@(_mostrarPasswordCambio ? "text" : "password")" class="modern-input" @bind-Value="CambioContrasenaModel.NuevaContrasena" placeholder="********" autocomplete="new-password" />
+                            <button type="button" class="eye-btn" @onclick="() => _mostrarPasswordCambio = !_mostrarPasswordCambio">
+                                <MudIcon Icon="@(_mostrarPasswordCambio? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Style="width: 20px; height: 20px; flex-shrink: 0;" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" @onclick="CerrarModalCambioContrasena">Cancelar</button>
+                    <button type="submit" class="btn-save">Actualizar</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
 
 @code {
-    // Modelo para cambio de contraseña
     public class CambioContrasenaModelClass
     {
-        [Required(ErrorMessage = "La nueva contraseña es requerida")]
-        [MinLength(8, ErrorMessage = "Debe tener al menos 8 caracteres")]
+        [Required(ErrorMessage = "Requerido")]
+        [MinLength(8, ErrorMessage = "Mínimo 8 caracteres")]
         public string NuevaContrasena { get; set; } = string.Empty;
     }
 
-    private bool MostrarModal { get; set; } = false;
-    private bool MostrarFormularioModal { get; set; } = false;
-    private string MensajeError { get; set; } = string.Empty;
-    private bool MostrarMensajeError { get; set; } = false;
-
-    private bool MostrarModalCambioContrasena { get; set; } = false;
-    private UsuariosDTO UsuarioCambioContrasena { get; set; } = null!;
-    private CambioContrasenaModelClass CambioContrasenaModel { get; set; } = new();
-
-    private bool _mostrarPasswordCambio = false;
-
+    private bool MostrarFormularioModal = false;
+    private bool MostrarModalCambioContrasena = false;
+    private UsuariosDTO UsuarioCambioContrasena = null!;
+    private CambioContrasenaModelClass CambioContrasenaModel = new();
     private bool _mostrarPassword = false;
+    private bool _mostrarPasswordCambio = false;
     private string _filtro = string.Empty;
+
     private string Filtro
     {
         get => _filtro;
@@ -189,29 +208,36 @@
             if (_filtro != value)
             {
                 _filtro = value;
-                FiltrarUsuarios(); // Aquí ejecutamos el filtro
+                FiltrarUsuarios();
             }
         }
     }
 
-    List<UsuariosDTO>? ListaUsuarios { get; set; } = null;
-    private List<UsuariosDTO> UsuariosFiltrados { get; set; } = new();
-    private UsuariosDTO NuevoUsuario { get; set; } = new()
-        {
-            NombreUsuario = string.Empty,
-            password = string.Empty,
-            Rol = string.Empty
-        };
+    List<UsuariosDTO>? ListaUsuarios = null;
+    private List<UsuariosDTO> UsuariosFiltrados = new();
+
+    // CORRECCIÓN CS9035: Inicialización correcta de propiedades Required
+    private UsuariosDTO NuevoUsuario = new UsuariosDTO
+    {
+        NombreUsuario = string.Empty,
+        password = string.Empty,
+        Rol = string.Empty
+    };
 
     private int currentPage = 1;
-    private int pageSize = 12; // Cantidad de usuarios por pagina
-    private int totalPages => (UsuariosFiltrados.Count + pageSize - 1) / pageSize;
+    private int pageSize = 10;
+    private int totalPages => UsuariosFiltrados.Count == 0 ? 1 : (int)Math.Ceiling((double)UsuariosFiltrados.Count / pageSize);
 
-    // Lista paginada
     private IEnumerable<UsuariosDTO> PagedUsuarios => UsuariosFiltrados
         .OrderByDescending(e => e.Id)
         .Skip((currentPage - 1) * pageSize)
         .Take(pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaUsuarios = await UsuarioService.Lista_Usuarios();
+        UsuariosFiltrados = new List<UsuariosDTO>(ListaUsuarios.OrderByDescending(e => e.Id));
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -222,321 +248,567 @@
         }
     }
 
-    private void AlternarVisibilidad()
-    {
-        _mostrarPassword = !_mostrarPassword;
-    }
+    private void AlternarVisibilidad() => _mostrarPassword = !_mostrarPassword;
 
-    protected override async Task OnInitializedAsync()
+    private void AbrirModalCambioContrasena(UsuariosDTO u)
     {
-        ListaUsuarios = await UsuarioService.Lista_Usuarios();
-        UsuariosFiltrados = new List<UsuariosDTO>(ListaUsuarios.OrderByDescending(e => e.Id));
-    }
-
-    // Abrir modal cambio contraseña
-    private void AbrirModalCambioContrasena(UsuariosDTO usuario)
-    {
-        UsuarioCambioContrasena = usuario;
-        CambioContrasenaModel = new CambioContrasenaModelClass();
+        UsuarioCambioContrasena = u;
+        CambioContrasenaModel = new();
         _mostrarPasswordCambio = false;
         MostrarModalCambioContrasena = true;
     }
 
-    private void CerrarModalCambioContrasena()
-    {
-        MostrarModalCambioContrasena = false;
-        CambioContrasenaModel = new CambioContrasenaModelClass();
-    }
+    private void CerrarModalCambioContrasena() => MostrarModalCambioContrasena = false;
 
     private async Task GuardarCambioContrasena()
     {
-        if (string.IsNullOrWhiteSpace(CambioContrasenaModel.NuevaContrasena))
-        {
-            await Swal.FireAsync("Error", "La nueva contraseña no puede estar vacía.", SweetAlertIcon.Error);
-            return;
-        }
-
-        if (CambioContrasenaModel.NuevaContrasena.Length < 6)
+        if (string.IsNullOrWhiteSpace(CambioContrasenaModel.NuevaContrasena) || CambioContrasenaModel.NuevaContrasena.Length < 6)
         {
             await Swal.FireAsync("Error", "La contraseña debe tener al menos 6 caracteres.", SweetAlertIcon.Error);
             return;
         }
 
-        var resultado = await UsuarioService.CambiarContrasena(UsuarioCambioContrasena.Id, CambioContrasenaModel.NuevaContrasena);
-
-        if (resultado)
+        var res = await UsuarioService.CambiarContrasena(UsuarioCambioContrasena.Id, CambioContrasenaModel.NuevaContrasena);
+        if (res)
         {
-            await Swal.FireAsync("Éxito", "Contraseña actualizada correctamente.", SweetAlertIcon.Success);
+            await Swal.FireAsync("Éxito", "Clave actualizada correctamente", SweetAlertIcon.Success);
             CerrarModalCambioContrasena();
         }
         else
         {
-            await Swal.FireAsync("Error", "No se pudo actualizar la contraseña.", SweetAlertIcon.Error);
+            await Swal.FireAsync("Error", "No se pudo actualizar la contraseña", SweetAlertIcon.Error);
         }
     }
 
-    // Filtro de búsqueda
     private void FiltrarUsuarios()
     {
-        UsuariosFiltrados = ListaUsuarios!
-            .Where(e =>
-                string.IsNullOrWhiteSpace(Filtro) ||
-                (e.Rol != null && e.Rol.Contains(Filtro, StringComparison.OrdinalIgnoreCase)) ||
-                (e.NombreUsuario != null && e.NombreUsuario.Contains(Filtro, StringComparison.OrdinalIgnoreCase)) ||
-                e.Id.ToString().Contains(Filtro)
-            )
-            .ToList();
+        UsuariosFiltrados = ListaUsuarios!.Where(e =>
+            string.IsNullOrWhiteSpace(Filtro) ||
+            (e.Rol != null && e.Rol.Contains(Filtro, StringComparison.OrdinalIgnoreCase)) ||
+            (e.NombreUsuario != null && e.NombreUsuario.Contains(Filtro, StringComparison.OrdinalIgnoreCase)) ||
+            e.Id.ToString().Contains(Filtro)
+        ).ToList();
 
+        currentPage = 1;
         StateHasChanged();
     }
 
     private async Task Eliminar(int id)
     {
-        var resultado = await Swal.FireAsync(new SweetAlertOptions
-            {
-                Title = "¿Estás seguro?",
-                Text = "No podrás revertir esto.",
-                Icon = SweetAlertIcon.Warning,
-                ShowCancelButton = true,
-                ConfirmButtonText = "Sí, eliminar",
-                CancelButtonText = "Cancelar"
-            });
-
-        if (resultado.IsConfirmed)
+        var res = await Swal.FireAsync(new SweetAlertOptions
         {
-            var eliminado = await UsuarioService.Eliminar(id);
+            Title = "¿Estás seguro?",
+            Text = "No podrás revertir esto.",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Sí, eliminar",
+            CancelButtonText = "Cancelar"
+        });
 
-            if (eliminado)
+        if (res.IsConfirmed)
+        {
+            if (await UsuarioService.Eliminar(id))
             {
-                await Swal.FireAsync(new SweetAlertOptions
-                    {
-                        Title = "Eliminado",
-                        Text = "El usuario ha sido eliminado.",
-                        Icon = SweetAlertIcon.Success
-                    });
-
+                await Swal.FireAsync("Eliminado", "El usuario ha sido eliminado.", SweetAlertIcon.Success);
                 ListaUsuarios = await UsuarioService.Lista_Usuarios();
+                FiltrarUsuarios();
             }
             else
             {
-                await Swal.FireAsync(new SweetAlertOptions
-                    {
-                        Title = "Error",
-                        Text = "No se pudo eliminar el usuario.",
-                        Icon = SweetAlertIcon.Error
-                    });
+                await Swal.FireAsync("Error", "No se pudo eliminar el usuario.", SweetAlertIcon.Error);
             }
         }
-
-        FiltrarUsuarios();
     }
 
-    // Roles con su descripción
-    private Dictionary<string, string> RolesDescripcion = new()
-    {
+    private Dictionary<string, string> RolesDescripcion = new() {
         { "CONSULTA", "Tiene acceso a consultar la información registrada en cada uno de los módulos del sistema, así como a la sección de reportes." },
-        { "CAPTURA", "Adicional a los derechos del rol de CONSULTA, este tipo de usuario se le permite el registro y modificación de la información contenida en cada uno de los módulos del sistema." },
-        { "SUPERVISIÓN", "Adicional a los derechos del rol de CAPTURA, este tipo de usuario ejerce las funciones de seguimiento definidas en el módulo 3 (Comité de Transparencia)." },
-        { "ADMINISTRADOR", "Adicional a los derechos del rol de CAPTURA, este tipo de usuario tiene el control de los catálogos del sistema así como de los accesos y usuarios." }
+        { "CAPTURA", "Adicional a los derechos de CONSULTA, permite el registro y modificación de la información en los módulos." },
+        { "SUPERVISIÓN", "Adicional a los derechos de CAPTURA, ejerce funciones de seguimiento (Comité de Transparencia)." },
+        { "ADMINISTRADOR", "Adicional a los derechos de CAPTURA, tiene el control de catálogos, accesos y usuarios." }
     };
 
     private List<string> ListaRoles => RolesDescripcion.Keys.ToList();
 
     private string DescripcionRolSeleccionado =>
         NuevoUsuario?.Rol != null && RolesDescripcion.ContainsKey(NuevoUsuario.Rol)
-            ? RolesDescripcion[NuevoUsuario.Rol]
-            : string.Empty;
+        ? RolesDescripcion[NuevoUsuario.Rol] : "";
 
-    private void MostrarFormulario()
-    {
-        MostrarFormularioModal = true;
-    }
-
-    private void CerrarFormulario()
-    {
-        MostrarFormularioModal = false;
-    }
+    private void MostrarFormulario() => MostrarFormularioModal = true;
+    private void CerrarFormulario() => MostrarFormularioModal = false;
 
     private async Task GuardarUsuario()
     {
         if (ListaUsuarios!.Any(e => e.NombreUsuario == NuevoUsuario.NombreUsuario))
         {
-            await MostrarAlerta("El usuario ya existe");
+            await Swal.FireAsync("Error", "El usuario ya existe.", SweetAlertIcon.Error);
             return;
         }
 
         await UsuarioService.Register(NuevoUsuario);
-
         ListaUsuarios = await UsuarioService.Lista_Usuarios();
-
         FiltrarUsuarios();
-
         MostrarFormularioModal = false;
+
+        // CORRECCIÓN CS9035: Re-inicialización correcta
+        NuevoUsuario = new UsuariosDTO
+        {
+            NombreUsuario = string.Empty,
+            password = string.Empty,
+            Rol = string.Empty
+        };
     }
 
-    private async Task MostrarAlerta(string mensaje)
+    private void PrevPage() { if (currentPage > 1) currentPage--; }
+    private void NextPage() { if (currentPage < totalPages) currentPage++; }
+
+    private string GetRoleClass(string r) => r?.ToUpper() switch
     {
-        MensajeError = mensaje;
-        MostrarMensajeError = true;
-
-        await Task.Delay(4000);
-
-        MostrarMensajeError = false;
-        StateHasChanged();
-    }
-
-    private void PrevPage()
-    {
-        if (currentPage > 1)
-            currentPage--;
-    }
-
-    private void NextPage()
-    {
-        if (currentPage < totalPages)
-            currentPage++;
-    }
+        "ADMINISTRADOR" => "badge-admin",
+        "CONSULTA" => "badge-consulta",
+        "CAPTURA" => "badge-captura",
+        "SUPERVISIÓN" => "badge-super",
+        _ => "badge-default"
+    };
 }
 
 <style>
-    /* Modal general */
-    .modal {
+    :root {
+        --primary: #4f46e5;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+    }
+
+    .page-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin: 0;
+    }
+
+    .btn-new {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+        cursor: pointer;
+    }
+
+        .btn-new:hover {
+            transform: translateY(-1px);
+            background: #4338ca;
+        }
+
+    .search-bar-wrapper {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-container {
+        position: relative;
+        max-width: 500px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 2.8rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: white;
+        transition: all 0.2s;
+        color: var(--text-dark);
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .modern-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-light);
+            border-bottom: 1px solid var(--border);
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        .modern-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            vertical-align: middle;
+        }
+
+        .modern-table tr:hover {
+            background: #f8fafc;
+        }
+
+    .text-id {
+        color: var(--text-light);
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        background: #e2e8f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.8rem;
+    }
+
+    .text-nombre {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem !important;
+        color: var(--text-light);
+        font-size: 1.1rem;
+    }
+
+    .role-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .badge-admin {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-consulta {
+        background: #f0f9ff;
+        color: #075985;
+    }
+
+    .badge-captura {
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .badge-super {
+        background: #fef9c3;
+        color: #854d0e;
+    }
+
+    .badge-default {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .actions-wrapper {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-action-outline {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: white;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+        .btn-action-outline:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: #f5f3ff;
+        }
+
+    .btn-action-danger {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid #fee2e2;
+        background: white;
+        color: #ef4444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+        .btn-action-danger:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+    .pagination-container {
+        padding: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid var(--border);
+    }
+
+    .btn-pag {
+        background: white;
+        border: 1px solid var(--border);
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-pag:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-pag:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+    .page-numbers {
+        font-size: 0.85rem;
+        color: var(--text-light);
+    }
+
+        .page-numbers span {
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+    /* MODALES */
+    .modern-modal-backdrop {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
+        background: rgba(15,23,42,0.6);
+        backdrop-filter: blur(4px);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 2000;
     }
-    /* Contenido del modal */
-    .modal-contenido {
-        background-color: #fff;
-        padding: 2rem;
-        border-radius: 1rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+
+    .modern-modal-box {
+        background: white;
+        border-radius: 16px;
         width: 100%;
-        max-width: 600px;
-        animation: slideDown 0.3s ease-out;
+        max-width: 450px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        overflow: hidden;
+        animation: m-slideUp 0.3s ease-out;
     }
 
-        .modal-contenido h4 {
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-            color: #333;
-            text-align: center;
+    .modal-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
         }
 
-        .modal-contenido label {
-            display: block;
-            margin-top: 1rem;
-            font-weight: 600;
-            color: #444;
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-light);
+    }
+
+        .close-btn:hover {
+            color: #ef4444;
         }
 
-        .modal-contenido input,
-        .modal-contenido select,
-        .modal-contenido textarea {
-            width: 100%;
-            padding: 0.6rem;
-            margin-top: 0.3rem;
-            margin-bottom: .5rem;
-            border: 1px solid #ccc;
-            border-radius: 0.5rem;
-            box-sizing: border-box;
-            font-size: 1rem;
-            transition: border-color 0.2s ease-in-out;
+    .modal-body {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .input-group label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-light);
+        margin-bottom: 6px;
+    }
+
+    .modern-input {
+        width: 100%;
+        padding: 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        color: var(--text-dark);
+    }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px #e0e7ff;
+            background: #fff;
         }
 
-            .modal-contenido input:focus,
-            .modal-contenido select:focus,
-            .modal-contenido textarea:focus {
-                border-color: #007bff;
-                outline: none;
-            }
-
-        .modal-contenido button {
-            margin: auto;
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 0.5rem;
-            background-color: #007bff;
-            color: #fff;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-            .modal-contenido button:hover {
-                background-color: #0056b3;
-            }
-
-            .modal-contenido button:last-of-type {
-                background-color: #6c757d;
-            }
-
-                .modal-contenido button:last-of-type:hover {
-                    background-color: #5a6268;
-                }
-
-    /* Ver Password */
-    .password-container {
+    .pass-wrapper {
         position: relative;
     }
 
-    .input-password {
-        padding-right: 2.75rem !important;
-        height: calc(2.25rem + 2px); /* Altura estándar de form-control */
-        line-height: 1.5;
-    }
-
-    .toggle-password {
+    .eye-btn {
         position: absolute;
+        right: 10px;
         top: 50%;
-        right: 0.75rem;
         transform: translateY(-50%);
         background: none;
         border: none;
-        font-size: 1.25rem;
-        color: #555;
+        color: #94a3b8;
         cursor: pointer;
+        padding: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
-        height: 100%;
-        padding: 0;
     }
 
-        .toggle-password:hover {
-            color: #007bff;
-        }
+    .rol-info-box {
+        background: #f8fafc;
+        padding: 10px;
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+        font-size: 0.8rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        line-height: 1.4;
+    }
 
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.8rem;
+        border-top: 1px solid var(--border);
+    }
 
-    /* Botón para agregar usuarios */
-    .btn-agregar {
-        background-color: #28a745;
+    .btn-save {
+        background: var(--primary);
         color: white;
-        font-weight: 600;
-        padding: 0.5rem 1.2rem;
         border: none;
-        border-radius: 0.5rem;
-        font-size: 1rem;
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
         cursor: pointer;
-        transition: background-color 0.3s ease, box-shadow 0.2s ease;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: background 0.2s;
     }
 
-        .btn-agregar:hover {
-            background-color: #218838;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        .btn-save:hover {
+            background: var(--primary-hover);
         }
 
-        .btn-agregar:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.4);
+    .btn-cancel {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text-light);
+        transition: background 0.2s;
+    }
+
+        .btn-cancel:hover {
+            background: #f1f5f9;
         }
 
+    @@keyframes m-slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* RESET PARA SVGS REBELDES */
+    svg {
+        max-width: 100% !important;
+        display: inline-block !important;
+    }
 </style>

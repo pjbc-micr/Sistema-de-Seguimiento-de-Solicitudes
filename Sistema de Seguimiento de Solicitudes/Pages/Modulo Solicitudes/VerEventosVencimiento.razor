@@ -6,36 +6,98 @@
 
 @inject IJSRuntime JS
 
+<div class="vencimiento-modal-container">
+    <div class="modal-header-actions">
+        <div>
+            <h3 class="modal-title">Solicitudes próximas a vencer</h3>
+            <p class="modal-subtitle">Monitorea el estado crítico de los expedientes.</p>
+        </div>
 
-<RadzenCard Class="vencimiento-modal">
-    <h3>Solicitudes próximas a vencer</h3>
+        @if (Eventos.Any())
+        {
+            <button class="btn-export-excel shadow-sm" @onclick="ExportarExcel">
+                <i class="bi bi-file-earmark-excel-fill"></i> Exportar a Excel
+            </button>
+        }
+    </div>
 
     @if (Eventos.Any())
     {
-        <RadzenButton Text="Exportar a Excel"
-                      Icon="file_download"
-                      Class="btn-exportar"
-                      Click="@ExportarExcel" />
-
-        <div class="vencimiento-grid">
+        <div class="vencimiento-grid shadow-sm">
             <RadzenDataGrid Data="@Eventos"
                             TItem="EventoSolicitud"
                             ShowPagingSummary="true"
-                            PageSize="20"
+                            PagingSummaryFormat="Mostrando página {0} de {1} (Total: {2} registros)"
+                            PageSize="10"
+                            AllowPaging="true"
+                            AllowSorting="true"
                             Responsive="true">
                 <Columns>
-                    <RadzenDataGridColumn TItem="EventoSolicitud" Title="N°" >
+                    <RadzenDataGridColumn TItem="EventoSolicitud" Title="N°" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="evento">
-                            @(Eventos.IndexOf(evento) + 1)
+                            <span class="text-muted fw-bold">@(Eventos.IndexOf(evento) + 1)</span>
                         </Template>
                     </RadzenDataGridColumn>
 
-                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="Title" Title="Folio / Solicitante" />
-                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="TipoSolicitud" Title="Tipo" />
-                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="End" Title="Límite"  />
-                    <RadzenDataGridColumn TItem="EventoSolicitud" Title="Días restantes">
+                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="Title" Title="Folio / Solicitante" Width="300px">
                         <Template Context="evento">
-                            @CalcularDiasHabiles(DateTime.Now.Date, evento.End.Date)
+                            <span class="fw-bold" style="color: #1e293b;">@evento.Title.Split("–").FirstOrDefault()?.Trim()</span>
+                            @if (evento.Title.Contains("–"))
+                            {
+                                <span class="text-muted"> - @evento.Title.Split("–").LastOrDefault()?.Trim()</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="TipoSolicitud" Title="Tipo" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="evento">
+                            @if (!string.IsNullOrWhiteSpace(evento.TipoSolicitud))
+                            {
+                                <span class="badge-tipo">@evento.TipoSolicitud</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="EventoSolicitud" Property="End" Title="Límite" Width="120px" TextAlign="TextAlign.Center" SortOrder="SortOrder.Ascending">
+                        <Template Context="evento">
+                            <span class="date-text">@evento.End.ToString("dd/MM/yyyy")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="EventoSolicitud" Title="Estado" Width="180px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="evento">
+                            @{
+                                var dias = CalcularDiasHabiles(DateTime.Now.Date, evento.End.Date);
+
+                                if (dias < 0)
+                                {
+                                    <span class="badge-status danger">
+                                        <i class="bi bi-x-circle-fill"></i> Venció hace @Math.Abs(dias) días
+                                    </span>
+                                }
+                                else if (dias == 0)
+                                {
+                                    <span class="badge-status warning">
+                                        <i class="bi bi-exclamation-circle-fill"></i> ¡Vence hoy!
+                                    </span>
+                                }
+                                else if (dias <= 3)
+                                {
+                                    <span class="badge-status warning-light">
+                                        <i class="bi bi-clock-fill"></i> Quedan @dias días
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status success">
+                                        <i class="bi bi-check-circle-fill"></i> En tiempo (@dias días)
+                                    </span>
+                                }
+                            }
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -44,26 +106,47 @@
     }
     else
     {
-        <p>No hay eventos próximos a vencer.</p>
+        <div class="empty-state">
+            <i class="bi bi-check2-circle"></i>
+            <p>¡Todo al día! No hay eventos próximos a vencer.</p>
+        </div>
     }
-</RadzenCard>
+</div>
 
 @code {
     [Parameter] public List<EventoSolicitud> Eventos { get; set; } = new();
 
+    protected override void OnInitialized()
+    {
+        // Forzamos a que la lista se ordene por la fecha límite de menor a mayor (más antiguo primero)
+        if (Eventos != null && Eventos.Any())
+        {
+            Eventos = Eventos.OrderBy(e => e.End.Date).ToList();
+        }
+    }
+
     private async Task ExportarExcel()
     {
         var hora = DateTime.Now.ToString("HH꞉mm꞉ss");
-        var nombre = $"Solicitudes_Vencimiento_{DateTime.Now:dd-MM-yyyy}_{hora}.xlsx";
+        var nombre = $"Solicitudes_Vencimiento_{DateTime.Now:dd-MM-yyyy}_{hora}.csv";
 
         var xlsx = new StringBuilder();
-        xlsx.AppendLine("N°,Folio / Solicitante,Tipo,Límite,Días Restantes");
+        // Agregamos BOM para que Excel lea los acentos correctamente
+        xlsx.Append('\uFEFF');
+        xlsx.AppendLine("N°,Folio / Solicitante,Tipo,Límite,Estado");
 
         for (int i = 0; i < Eventos.Count; i++)
         {
             var e = Eventos[i];
             var dias = CalcularDiasHabiles(DateTime.Now.Date, e.End.Date);
-            xlsx.AppendLine($"{i + 1},\"{e.Title}\",\"{e.TipoSolicitud}\",\"{e.End:yyyy-MM-dd}\",{dias}");
+
+            // Replicamos la lógica humana para el Excel
+            string estadoTexto = "";
+            if (dias < 0) estadoTexto = $"Venció hace {Math.Abs(dias)} días";
+            else if (dias == 0) estadoTexto = "Vence hoy";
+            else estadoTexto = $"Quedan {dias} días";
+
+            xlsx.AppendLine($"{i + 1},\"{e.Title}\",\"{e.TipoSolicitud}\",\"{e.End:dd/MM/yyyy}\",\"{estadoTexto}\"");
         }
 
         var xlsxBytes = Encoding.UTF8.GetBytes(xlsx.ToString());
@@ -75,6 +158,8 @@
     {
         int dias = 0;
         int signo = Math.Sign((fin - inicio).Days);
+        if (signo == 0) return 0; // Evita ciclos infinitos si es hoy
+
         DateTime fecha = inicio;
 
         while (fecha != fin.AddDays(signo))
@@ -107,56 +192,161 @@
     };
 }
 
-
 <style>
-    .vencimiento-modal {
-        padding: 1.5rem;
-        background-color: #f8f9fa;
-    }
-
-        .vencimiento-modal h3 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #343a40;
-        }
-
-    .btn-exportar {
-        margin-bottom: 1rem;
-        background-color: #198754;
-        color: white;
-        font-weight: 500;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-    }
-
-        .btn-exportar:hover {
-            background-color: #157347;
-        }
-
-    .vencimiento-grid .rz-datagrid {
-        border-radius: 0.5rem;
-        overflow: hidden;
+    /* ================= CONTENEDOR PRINCIPAL ================= */
+    .vencimiento-modal-container {
+        font-family: 'Inter', system-ui, sans-serif;
         background-color: white;
-        border: 1px solid #dee2e6;
     }
 
-    .vencimiento-grid th {
-        background-color: #e9ecef;
-        font-weight: bold;
-        font-size: 0.875rem;
+    .modal-header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.5px;
+    }
+
+    .modal-subtitle {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    /* ================= BOTÓN EXPORTAR ================= */
+    .btn-export-excel {
+        background-color: #10b981; /* Esmeralda SaaS */
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+        .btn-export-excel:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25) !important;
+        }
+
+    /* ================= TABLA RADZEN PRO ================= */
+    .vencimiento-grid {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    /* Limpieza de la tabla nativa */
+    .rz-datagrid {
+        border: none !important;
+    }
+
+    .rz-grid-table thead th {
+        background-color: #f8fafc !important;
+        color: #64748b !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
         text-transform: uppercase;
-        color: #495057;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 12px 8px !important;
     }
 
-    .vencimiento-grid td {
+    .rz-grid-table td {
+        padding: 12px 8px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
         font-size: 0.875rem;
-        padding: 0.75rem;
-        color: #212529;
     }
 
-    .vencimiento-grid tr:nth-child(even) {
-        background-color: #f8f9fa;
+    .rz-datagrid-row:hover td {
+        background-color: #f8fafc !important;
     }
 
+    .date-text {
+        color: #475569;
+        font-weight: 500;
+    }
+
+    /* ================= BADGES (ETIQUETAS) ================= */
+    .badge-tipo {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+    }
+
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+        .badge-status.danger {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-status.warning {
+            background-color: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-status.warning-light {
+            background-color: #fcf8ff;
+            color: #b45309;
+            border: 1px solid #fef08a;
+        }
+
+        .badge-status.success {
+            background-color: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+    /* ================= EMPTY STATE ================= */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94a3b8;
+    }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #10b981;
+            margin-bottom: 1rem;
+            display: block;
+            opacity: 0.8;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
 </style>

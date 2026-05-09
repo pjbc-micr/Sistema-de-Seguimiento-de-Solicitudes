@@ -7,7 +7,7 @@
 @using SolicitudesShared
 @using ClosedXML.Excel;
 @using System.Globalization;
-
+@using MudBlazor
 
 @inject IExpedienteService ExpedienteService
 @inject IJSRuntime JSRuntime
@@ -15,106 +15,164 @@
 @inject NavigationManager Navigation
 @inject HttpClient Http
 
-<div class="historial-container">
-    <h3>📁 Historial de Solicitudes</h3>
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <!-- Campo de Busqueda -->
-            <input type="text" class="form-control" placeholder="🔍 Buscar por nombre o folio..." @bind="busqueda" @bind:event="oninput" />
-        </div>
-        <div class="col-md-2">
-            <select class="form-control" @bind="estadoSeleccionado">
-                <option value="">🗂️ Todos los estados</option>
-                <option value="INICIO">🟦 Inicio</option>
-                <option value="PROCESO">🔄 Proceso</option>
-                <option value="EN PREVENCIÓN">📋 En Prevención</option>
-                <option value="EN AMPLIACIÓN">⏳ En Ampliación</option>
-                <option value="TERMINADA">✅ Terminada</option>
-                <option value="DESECHADA">❌ Desechada</option>
-                <option value="CANCELADA">⚠️ Cancelada</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <input class="form-control" type="date" @bind="filtroFechaDia" />
-        </div>
-        <div class="col-md-1">
-            <select class="form-control" @bind="filtroMes">
-                <option value="">Mes</option>
-                @for (int m = 1; m <= 12; m++)
-                {
-                    <option value="@m">@System.Globalization.CultureInfo.GetCultureInfo("es-MX").DateTimeFormat.GetMonthName(m)</option>
-                }
-            </select>
-        </div>
+<PageTitle>Historial de Solicitudes</PageTitle>
 
-        <div class="col-md-1">
-            <select class="form-control" @bind="filtroAno">
-                <option value="">Año</option>
-                @foreach (var Ano in AnosDisponibles)
-                {
-                    <option value="@Ano">@Ano</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-success w-100" @onclick="DescargarExcel">
-                📤 Descargar Excel
+<div class="page-container">
+    <div class="header-flex">
+        <h2 class="page-title">Historial de Solicitudes</h2>
+    </div>
+
+    <div class="filters-action-bar">
+        <div class="filters-group">
+            <div class="filter-search">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Style="width: 20px; height: 20px; flex-shrink: 0; position: absolute; left: 16px; top: 12px; color: #94a3b8;" />
+                <input type="text" class="pro-input pl-search" placeholder="Nombre o folio..." @bind="busqueda" @bind:event="oninput" />
+            </div>
+
+            <div class="filter-item">
+                <select class="pro-select" @bind="estadoSeleccionado">
+                    <option value="">Todos los estados</option>
+                    <option value="INICIO">Inicio</option>
+                    <option value="EN PROCESO">En Proceso</option>
+                    <option value="EN PREVENCIÓN">En Prevención</option>
+                    <option value="EN AMPLIACIÓN">En Ampliación</option>
+                    <option value="TERMINADA">Terminada</option>
+                    <option value="DESECHADA">Desechada</option>
+                    <option value="CANCELADA">Cancelada</option>
+                </select>
+            </div>
+
+            <div class="v-divider"></div>
+
+            <div class="filter-item-date">
+                <input class="pro-input" type="date" @bind="filtroFechaDia" title="Fecha específica" />
+            </div>
+
+            <div class="filter-item-small">
+                <select class="pro-select text-uppercase" @bind="filtroMes">
+                    <option value="">Mes</option>
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m">@System.Globalization.CultureInfo.GetCultureInfo("es-MX").DateTimeFormat.GetMonthName(m).Substring(0, 3)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-item-small">
+                <select class="pro-select" @bind="filtroAno">
+                    <option value="">Año</option>
+                    @foreach (var Ano in AnosDisponibles)
+                    {
+                        <option value="@Ano">@Ano</option>
+                    }
+                </select>
+            </div>
+
+            <!-- 🔥 NUEVO: Botón para limpiar filtros -->
+            <button class="btn-clear-filters" @onclick="LimpiarFiltros" title="Restablecer filtros">
+                <MudIcon Icon="@Icons.Material.Filled.FilterAltOff" Style="width: 20px; height: 20px;" />
             </button>
+        </div>
 
+        <div class="actions-group">
+            <button class="btn-export-excel" @onclick="DescargarExcel" title="Exportar a Excel">
+                <MudIcon Icon="@Icons.Material.Filled.FileDownload" Style="width: 20px; height: 20px; flex-shrink: 0; margin-right: 6px;" /> Exportar
+            </button>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>DETALLES</th>
-                    <th>ID</th>
-                    <th>FOLIO</th>
-                    <th>NOMBRE</th>
-                    <th>FECHA DE INICIO</th>
-                    <th>ESTADO</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (SolicitudesFiltradas.Any())
-                {
-                    @foreach (var solicitud in PagedExpedientes)
+    <div class="pro-table-card">
+        <div class="table-container">
+            <table class="pro-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px; text-align: center;">Ver</th>
+                        <th>Folio</th>
+                        <th style="width: 80px;">Tipo</th>
+                        <th>Nombre Solicitante</th>
+                        <th>Fecha Inicio</th>
+                        <th>Vencimiento</th>
+                        <th style="text-align: center;">Ampliación</th>
+                        <th style="text-align: center;">Estado</th>
+                        <th style="width: 60px; text-align: center;">ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (SolicitudesFiltradas.Any())
+                    {
+                        @foreach (var solicitud in PagedExpedientes)
+                        {
+                            <tr>
+                                <td style="text-align: center;">
+                                    <button class="btn-action-circle" @onclick="() => VerDetalle(solicitud.Id, solicitud.Folio ?? string.Empty)" title="Ver detalles del expediente">
+                                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                                    </button>
+                                </td>
+                                <td class="text-folio">@solicitud.Folio</td>
+                                
+                                <!-- 🔥 NUEVA: Tipo de Solicitud -->
+                                <td>
+                                    <span class="badge-tipo">@(string.IsNullOrEmpty(solicitud.TipoSolicitud) ? "-" : solicitud.TipoSolicitud)</span>
+                                </td>
+
+                                <td class="text-nombre">@solicitud.NombreSolicitante</td>
+                                <td class="text-date">@solicitud.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                
+                                <!-- 🔥 NUEVA: Fecha de Vencimiento -->
+                                <td class="text-date fw-bold" style="color: #334155;">
+                                    @ObtenerFechaVencimiento(solicitud)
+                                </td>
+
+                                <!-- 🔥 NUEVA: Requiere Ampliación -->
+                                <td style="text-align: center;">
+                                    @if (solicitud.Ampliacion?.ToUpper() == "SI")
+                                    {
+                                        <span class="badge-ampliacion">SÍ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-weight: 600;">-</span>
+                                    }
+                                </td>
+
+                                <td style="text-align: center;">
+                                    <span class="status-badge @GetEstadoClass(solicitud.Estado ?? string.Empty)">
+                                        @solicitud.Estado
+                                    </span>
+                                </td>
+                                <td class="text-id">#@solicitud.Id</td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>
-                                <button class="btn-detalles" @onclick="() => VerDetalle(solicitud.Id, solicitud.Folio ?? string.Empty)"> 🔍 Ver Detalles </button>
-                            </td>
-                            <td>@solicitud.Id</td>
-                            <td>@solicitud.Folio</td>
-                            <td>@solicitud.NombreSolicitante</td>
-                            <td>@solicitud.FechaInicio.ToString("dd/MM/yyyy")</td>
-                            <td>
-                                <span class="badge @GetEstadoClass(solicitud.Estado ?? string.Empty)">
-                                    @solicitud.Estado
-                                </span>
+                            <td colspan="9" class="empty-state">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Style="width: 48px; height: 48px; color: #cbd5e1; margin-bottom: 1.5rem;" />
+                                <p class="text-dark">No encontramos resultados.</p>
+                                <p class="text-muted text-sm">Prueba ajustando o restableciendo los filtros de búsqueda.</p>
                             </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="6" class="text-center">No hay resultados para tu búsqueda.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
 
-    <div class="d-flex justify-content-center align-items-center mt-3" style="padding-bottom: 16px">
-        <button class="btn btn-primary mx-2" @onclick="PrevPage" disabled="@(currentPage <= 1)">
-            Anterior
-        </button>
-        <span>Página @currentPage de @totalPages</span>
-        <button class="btn btn-primary mx-2" @onclick="NextPage" disabled="@(currentPage >= totalPages)">
-            Siguiente
-        </button>
+        @if (SolicitudesFiltradas.Any())
+        {
+            <div class="pagination-footer">
+                <div class="pagination-info text-muted">Mostrando @PagedExpedientes.Count() de @SolicitudesFiltradas.Count() registros</div>
+                <div class="pagination-controls">
+                    <button class="btn-pag-small" @onclick="PrevPage" disabled="@(currentPage <= 1)" title="Página anterior">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                    </button>
+                    <div class="page-text">Página <span>@currentPage</span> de @totalPages</div>
+                    <button class="btn-pag-small" @onclick="NextPage" disabled="@(currentPage >= totalPages)" title="Siguiente página">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
@@ -127,23 +185,25 @@
     private int pageSize = 12;
 
     private IEnumerable<ExpedienteDTO> SolicitudesFiltradas =>
-    SolicitudesHistorial.Where(s =>
-        (string.IsNullOrWhiteSpace(busqueda) ||
-            (!string.IsNullOrEmpty(s.NombreSolicitante) && s.NombreSolicitante.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) ||
-            (!string.IsNullOrEmpty(s.Folio) && s.Folio.Contains(busqueda, StringComparison.OrdinalIgnoreCase)))
-        &&
-        (string.IsNullOrWhiteSpace(estadoSeleccionado) || s.Estado == estadoSeleccionado)
-        &&
-        (!filtroFechaDia.HasValue || s.FechaInicio.Date == filtroFechaDia.Value.Date)
-        &&
-        (!filtroMes.HasValue || s.FechaInicio.Month == filtroMes)
-        &&
-        (!filtroAno.HasValue || s.FechaInicio.Year == filtroAno)
-    );
+     SolicitudesHistorial.Where(s =>
+         (string.IsNullOrWhiteSpace(busqueda) ||
+             (!string.IsNullOrEmpty(s.NombreSolicitante) && s.NombreSolicitante.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrEmpty(s.Folio) && s.Folio.Contains(busqueda, StringComparison.OrdinalIgnoreCase)))
+         &&
+         (string.IsNullOrWhiteSpace(estadoSeleccionado) || (s.Estado != null && s.Estado.ToUpper() == estadoSeleccionado))
+         &&
+         (!filtroFechaDia.HasValue || s.FechaInicio.Date == filtroFechaDia.Value.Date)
+         &&
+         (!filtroMes.HasValue || s.FechaInicio.Month == filtroMes)
+         &&
+         (!filtroAno.HasValue || s.FechaInicio.Year == filtroAno)
+     );
 
+    // 🔥 ORDENADO POR FECHA DESCENDENTE (De lo más nuevo a lo más viejo)
     private IEnumerable<ExpedienteDTO> PagedExpedientes =>
         SolicitudesFiltradas
-            .OrderByDescending(e => e.Id)
+            .OrderByDescending(e => e.FechaInicio)
+            .ThenByDescending(e => e.Id)
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize);
 
@@ -165,8 +225,11 @@
     protected override async Task OnInitializedAsync()
     {
         var todas = await ExpedienteService.Lista();
+        
+        var estadosValidos = new[] { "INICIO", "EN PROCESO", "EN PREVENCIÓN", "EN AMPLIACIÓN", "TERMINADA", "DESECHADA", "CANCELADA" };
+        
         SolicitudesHistorial = todas
-            .Where(e => new[] { "INICIO", "PROCESO", "EN PREVENCIÓN", "EN AMPLIACIÓN", "TERMINADA", "DESECHADA", "CANCELADA" }.Contains(e.Estado))
+            .Where(e => !string.IsNullOrEmpty(e.Estado) && estadosValidos.Contains(e.Estado.ToUpper()))
             .OrderByDescending(e => e.FechaInicio)
             .ToList();
     }
@@ -180,21 +243,40 @@
         }
     }
 
+    // 🔥 Helper para limpiar todos los filtros a su estado original
+    private void LimpiarFiltros()
+    {
+        busqueda = string.Empty;
+        estadoSeleccionado = string.Empty;
+        filtroFechaDia = null;
+        filtroMes = null;
+        filtroAno = null;
+        currentPage = 1;
+    }
+
+    // 🔥 Helper para extraer la fecha de vencimiento sin importar la columna
+    private string ObtenerFechaVencimiento(ExpedienteDTO s)
+    {
+        if (s.FechaLimiteRespuesta20dias.HasValue) return s.FechaLimiteRespuesta20dias.Value.ToString("dd/MM/yyyy");
+        if (s.FechaLimiteRespuesta10dias.HasValue) return s.FechaLimiteRespuesta10dias.Value.ToString("dd/MM/yyyy");
+        return "Pendiente";
+    }
+
     private void VerDetalle(int id, string folio)
     {
         Navigation.NavigateTo($"/menu/modulo-solicitudes/indice-expedientes/detalles/{id}/{folio}");
     }
 
-    private string GetEstadoClass(string estado) => estado switch
+    private string GetEstadoClass(string estado) => estado?.ToUpper() switch
     {
-        "INICIO" => "badge-info",
-        "PROCESO" => "badge-primary",
-        "EN PREVENCIÓN" => "badge-warning",
-        "EN AMPLIACIÓN" => "badge-light",
-        "TERMINADA" => "badge-success",
-        "DESECHADA" => "badge-danger",
-        "CANCELADA" => "badge-dark",
-        _ => "badge-secondary"
+        "INICIO" => "st-inicio",
+        "EN PROCESO" => "st-proceso",
+        "EN PREVENCIÓN" => "st-prevencion",
+        "EN AMPLIACIÓN" => "st-ampliacion",
+        "TERMINADA" => "st-terminada",
+        "DESECHADA" => "st-desechada",
+        "CANCELADA" => "st-cancelada",
+        _ => "st-default"
     };
 
     private async Task DescargarExcel()
@@ -358,22 +440,328 @@
         }
     }
 
-    // Paginacion
     private void PrevPage()
     {
-        if (currentPage > 1)
-        {
-            currentPage--;
-            StateHasChanged();
-        }
+        if (currentPage > 1) { currentPage--; StateHasChanged(); }
     }
 
     private void NextPage()
     {
-        if (currentPage < totalPages)
-        {
-            currentPage++;
-            StateHasChanged();
-        }
+        if (currentPage < totalPages) { currentPage++; StateHasChanged(); }
     }
 }
+
+<style>
+    /* Variables de Diseño SaaS Pro */
+    :root {
+        --pro-bg-body: #f1f5f9;
+        --pro-card-bg: #ffffff;
+        --pro-text-main: #1e293b;
+        --pro-text-muted: #64748b;
+        --pro-border: #e2e8f0;
+        --pro-primary: #4f46e5;
+        --pro-success: #10b981;
+        --pro-hover: #f8fafc;
+    }
+
+    .page-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        font-family: 'Inter', 'Inter var', system-ui, sans-serif;
+    }
+
+    .header-flex {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--pro-text-main);
+        margin: 0;
+        letter-spacing: -0.025em;
+    }
+
+    .filters-action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filters-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-search {
+        position: relative;
+        width: 260px;
+    }
+
+    .filter-item { width: 170px; }
+    .filter-item-date { width: 150px; }
+    .filter-item-small { width: 90px; }
+
+    .pro-input, .pro-select {
+        width: 100%;
+        height: 42px;
+        padding: 0 1rem;
+        border: 1px solid var(--pro-border);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: var(--pro-card-bg);
+        color: var(--pro-text-main);
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .pl-search {
+        padding-left: 2.75rem;
+    }
+
+    .pro-input:focus, .pro-select:focus {
+        outline: none;
+        border-color: var(--pro-primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .v-divider {
+        width: 1px;
+        height: 24px;
+        background-color: var(--pro-border);
+        margin: 0 8px;
+    }
+
+    .text-uppercase {
+        text-transform: uppercase;
+    }
+
+    /* Botón Limpiar Filtros */
+    .btn-clear-filters {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        border: 1px solid var(--pro-border);
+        background-color: white;
+        color: #ef4444; /* Rojo suave para indicar "limpiar/borrar" */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-clear-filters:hover {
+        background-color: #fef2f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .btn-export-excel {
+        width: auto !important;
+        height: 42px;
+        padding: 0 1.25rem;
+        border-radius: 8px;
+        border: 1px solid #c3e6cb;
+        background-color: #d4edda;
+        color: #155724;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .btn-export-excel:hover {
+        background-color: #c3e6cb;
+        border-color: #b1dfbb;
+    }
+
+    /* Tarjeta y Tabla */
+    .pro-table-card {
+        background: var(--pro-card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--pro-border);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        overflow: hidden;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .pro-table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap; /* 🔥 Evita que las celdas se amontonen, permite scroll horizontal limpio */
+    }
+
+    .pro-table th {
+        background-color: #f8fafc;
+        padding: 1rem 1.25rem;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--pro-text-muted);
+        border-bottom: 1px solid var(--pro-border);
+        letter-spacing: 0.05em;
+        font-weight: 700;
+    }
+
+    .pro-table td {
+        padding: 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.95rem;
+        color: var(--pro-text-main);
+        vertical-align: middle;
+        transition: background-color 0.1s ease;
+    }
+
+    .pro-table tbody tr:hover {
+        background-color: var(--pro-hover);
+    }
+
+    /* Textos y Badges */
+    .text-folio {
+        font-weight: 700;
+        color: var(--pro-primary);
+    }
+
+    .text-nombre {
+        font-weight: 500;
+        color: #334155;
+    }
+
+    .text-date {
+        color: var(--pro-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .text-id {
+        color: #cbd5e1;
+        font-family: monospace;
+        font-size: 0.8rem;
+    }
+
+    .badge-tipo {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+    }
+
+    .badge-ampliacion {
+        background-color: #fee2e2;
+        color: #b91c1c;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 1px solid #fca5a5;
+    }
+
+    .btn-action-circle {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50%;
+        border: 1px solid var(--pro-border);
+        background: var(--pro-card-bg);
+        color: var(--pro-text-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 0 !important;
+        opacity: 0.6;
+    }
+
+    .pro-table tr:hover .btn-action-circle {
+        opacity: 1;
+        background: var(--pro-primary);
+        color: white;
+        border-color: var(--pro-primary);
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        display: inline-block;
+        white-space: nowrap;
+        letter-spacing: 0.025em;
+    }
+
+    .st-inicio { background: #dbeafe; color: #1e40af; }
+    .st-proceso { background: #fee2e2; color: #991b1b; }
+    .st-prevencion { background: #fef3c7; color: #854d0e; }
+    .st-ampliacion { background: #ffedd5; color: #c2410c; }
+    .st-terminada { background: #d1fae5; color: #065f46; }
+    .st-desechada { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .st-cancelada { background: #1f2937; color: white; }
+    .st-default { background: #f8fafc; color: #64748b; }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem !important;
+        color: var(--pro-text-muted);
+    }
+
+    .text-dark { color: var(--pro-text-main); font-weight: 600; font-size: 1.1rem; }
+    .text-sm { font-size: 0.9rem; }
+
+    /* Paginación */
+    .pagination-footer {
+        padding: 1rem 1.25rem;
+        background: #f8fafc;
+        border-top: 1px solid var(--pro-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .pagination-info { font-size: 0.85rem; }
+    .pagination-controls { display: flex; align-items: center; gap: 1rem; }
+
+    .btn-pag-small {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px;
+        border: 1px solid var(--pro-border);
+        background: var(--pro-card-bg);
+        color: var(--pro-text-main);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 0 !important;
+    }
+
+    .btn-pag-small:hover:not(:disabled) {
+        border-color: var(--pro-primary);
+        color: var(--pro-primary);
+        background: #f5f3ff;
+    }
+
+    .btn-pag-small:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-text { font-size: 0.85rem; color: var(--pro-text-muted); }
+    .page-text span { font-weight: 700; color: var(--pro-text-main); }
+    svg { max-width: 100% !important; display: inline-block !important; }
+</style>

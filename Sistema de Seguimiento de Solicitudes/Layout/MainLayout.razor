@@ -2,7 +2,6 @@
 @using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 
 @inherits LayoutComponentBase
-
 @implements IDisposable
 
 @inject NavigationManager NavigationManager
@@ -24,29 +23,6 @@
     <main>
         <div class="top-row px-4">
             <button class="btn-primary" @onclick="MainMenuClicked">Menú Principal</button>
-            @* <button class="btn btn-danger" @onclick="LogoutClicked">Cerrar sesión</button> *@
-            @* <AuthorizeView Context="UserContext">
-                <Authorized> *@
-                    <div class="dropdown me-2">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="userMenu"
-                                data-bs-toggle="dropdown" aria-expanded="false">
-                            ⚙ Opciones
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                    <AuthorizeView Roles="ADMINISTRADOR, SUPERVISIÓN">
-                                <li>
-                                    <a class="dropdown-item" href="/menu/modulo-solicitudes/CreacionUsuarios">Crear usuarios</a>
-                                </li>
-                                
-                            </AuthorizeView>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" @onclick="LogoutClicked">Cerrar sesión</a>
-                            </li>
-                        </ul>
-                    </div>
-                @* </Authorized>
-            </AuthorizeView> *@
         </div>
 
         <article class="content px-4">
@@ -65,12 +41,6 @@
             objRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("startInactivityWatcher", objRef);
         }
-    }
-
-    private async Task LogoutClicked()
-    {
-        await AuthService.Logout(); 
-        NavigationManager.NavigateTo("/login", true);
     }
 
     private void MainMenuClicked()

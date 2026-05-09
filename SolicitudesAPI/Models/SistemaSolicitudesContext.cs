@@ -23,7 +23,13 @@ public partial class SistemaSolicitudesContext : DbContext
 
     public virtual DbSet<DiaInhabilManual> DiaInhabilManual { get; set; }
 
-    
+    public virtual DbSet<Denuncia> Denuncias { get; set; }
+
+    public virtual DbSet<AcuerdoSeguimiento> AcuerdosSeguimiento { get; set; }
+
+    public virtual DbSet<ExpedienteDigital> ExpedientesDigitales { get; set; }
+
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) { }
 

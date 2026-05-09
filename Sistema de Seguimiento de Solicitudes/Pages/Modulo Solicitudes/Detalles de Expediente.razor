@@ -19,203 +19,485 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ICalendarioService CalendarioService
 
+<PageTitle>Detalles del Expediente</PageTitle>
 
-<PageTitle>Detalles</PageTitle>
+<div class="page-container">
 
-<div class="container mt-4">
-    <h3 class="text-center">Detalles de Solicitud @Expediente.Folio - @Expediente.Nombre </h3>
+    <div class="page-header">
+        <div>
+            <span class="badge-status @ObtenerClaseEstatus(Expediente.Estatus)">
+                @(!string.IsNullOrEmpty(Expediente.Estatus) ? Expediente.Estatus : "Sin Estatus")
+            </span>
+            <h1 class="title">Folio: @Expediente.Folio</h1>
+            <p class="subtitle">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 8px; color: #64748b;" />
+                Solicitante: <strong>@Expediente.Nombre</strong>
+            </p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-outline" type="button" @onclick="VolverAtras">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Style="width: 18px; height: 18px; flex-shrink: 0; margin-right: 6px;" /> Volver
+            </button>
+            @if (!EsSoloConsulta)
+            {
+                <button class="btn-primary" type="button" @onclick="ForzarGuardado">
+                    <MudIcon Icon="@Icons.Material.Filled.Save" Style="width: 18px; height: 18px; flex-shrink: 0; margin-right: 6px;" /> Guardar Cambios
+                </button>
+            }
+        </div>
+    </div>
 
     @if (Expediente != null)
     {
-        <div class="alert alert-warning text-center" hidden="@(EsSoloConsulta == false)" style="font-size: 24px">
-            Solo tienes permisos de lectura. No puedes editar este expediente.
+        @if (EsSoloConsulta)
+        {
+            <div class="alert-readonly">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 12px;" />
+                <span>Modo de solo lectura. No tienes permisos para modificar este expediente.</span>
+            </div>
+        }
+
+        <div class="stage-indicator">
+            <div class="stage active">
+                <span class="stage-dot"></span> Etapa Inicial
+            </div>
         </div>
 
-        <EditForm Model="@Expediente" OnValidSubmit="HandleValidSubmit" style="padding-bottom: 100px;">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
+        <EditForm Model="@Expediente" id="formExpediente">
 
-            <div class="row" disabled="@EsSoloConsulta">
+            <div class="content-grid" disabled="@EsSoloConsulta">
 
-                <!-- Barra de Etapa -->
-                <div class="etapas">
-                    <div class="etapa etapa-inicial"><h3>Etapa Inicial</h3></div>
-                </div>
-                <div class="col-md-6">
-                    <table class="table table-bordered">
-                        <tbody>
-                            <tr>
-                                <th>Folio</th>
-                                <td>@Expediente.Folio</td>
-                            </tr>
-                            <tr>
-                                <th>Año de Admisión</th>
-                                <td>@Expediente.AnoAdmision</td>
-                            </tr>
-                            <tr>
-                                <th>Mes de Admisión</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="Expediente.MesAdmision" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione el mes de admisión --</option>
-                                        @foreach (var mes in Catalogos.MesesAdmision)
-                                        {
-                                            <option value="@mes">@mes</option>
-                                        }
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Tipo de Solicitud</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="_TipoSolicitudBind" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione el tipo de solicitud --</option>
-                                        <option value="DAI">DAI</option>
-                                        <option value="ARCO">ARCO</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Tipo de Derecho</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="Expediente.TipoDerecho"
-                                                 disabled="@(Expediente.TipoSolicitud != "ARCO" || EsSoloConsulta)">
-                                        @if (Expediente.TipoSolicitud == "ARCO")
-                                        {
-                                            @foreach (var derechoArco in Catalogos.SolicitudARCO)
-                                            {
-                                                <option value="@derechoArco">@derechoArco</option>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <option value="">-- N/A --</option>
-                                        }
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fecha de Inicio del Trámite</th>
-                                <td>
-                                    <InputDate class="form-control"
-                                               @bind-Value="Expediente.FechaInicioTramite"
-                                               disabled="@EsSoloConsulta" />
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fecha Límite de Respuesta (10 o 20 días hábiles)</th>
-                                <td>
-                                    <InputDate class="form-control"
-                                               @bind-Value="Expediente.FechaLimiteRespuesta"
-                                               disabled />
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Ampliación</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="_AmpliacionBind" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione una opción --</option>
-                                        <option value="Si">Si</option>
-                                        <option value="No">No</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Estatus</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="Expediente.Estatus" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione un estado --</option>
-                                        <option value="En proceso">En proceso</option>
-                                        <option value="Terminada">Terminada</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fecha de Respuesta</th>
-                                <td><InputDate class="form-control" @bind-Value="Expediente.FechaRespuesta" disabled="@EsSoloConsulta" /></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- ================= TARJETA 1 ================= -->
+                <div class="card-section">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #4f46e5;" />
+                        Datos Generales
+                    </h3>
+
+                    <div class="form-grid">
+                        <div class="input-group span-2">
+                            <label>Nombre del Solicitante</label>
+                            <InputText class="modern-input" @bind-Value="Expediente.Nombre" disabled="@EsSoloConsulta" placeholder="Nombre completo del solicitante" />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Año de Admisión</label>
+                            <InputSelect class="modern-input" TValue="int" @bind-Value="Expediente.AnoAdmision" disabled="@EsSoloConsulta">
+                                <option disabled value="0">-- Seleccione --</option>
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Mes de Admisión</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.MesAdmision" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var mes in Catalogos.MesesAdmision)
+                                {
+                                    <option value="@mes">@mes</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- 🔥 MODIFICADO: Ciudades por Catálogo -->
+                        <div class="input-group">
+                            <label>Ciudad del Solicitante</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.Ciudad" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var ciudad in Catalogos.Ciudades)
+                                {
+                                    <option value="@ciudad">@ciudad</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Tipo de Solicitud</label>
+                            <InputSelect class="modern-input" @bind-Value="_TipoSolicitudBind" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="DAI">DAI</option>
+                                <option value="ARCO">ARCO</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Tipo de Derecho</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.TipoDerecho" disabled="@(Expediente.TipoSolicitud != "ARCO" || EsSoloConsulta)">
+                                @if (Expediente.TipoSolicitud == "ARCO")
+                                {
+                                    @foreach (var derechoArco in Catalogos.SolicitudARCO)
+                                    {
+                                        <option value="@derechoArco">@derechoArco</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option value="">-- N/A --</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Fecha de Inicio</label>
+                            <InputDate class="modern-input" @bind-Value="Expediente.FechaInicioTramite" disabled="@EsSoloConsulta" />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Límite de Respuesta</label>
+                            <InputDate class="modern-input input-readonly" @bind-Value="Expediente.FechaLimiteRespuesta" disabled />
+                        </div>
+
+                        <div class="input-group">
+                            <label>¿Aplica Ampliación?</label>
+                            <InputSelect class="modern-input" @bind-Value="_AmpliacionBind" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="Si">Sí</option>
+                                <option value="No">No</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label>Contenido de la Solicitud</label>
+                            <InputTextArea class="modern-input" @bind-Value="Expediente.ContenidoSolicitud" disabled="@EsSoloConsulta" rows="4" placeholder="Detalle íntegro de lo solicitado..." />
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-6">
-                    <table class="table table-bordered">
-                        <tbody>
-                            <tr>
-                                <th>Prevención</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="_PrevencionBind" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione una opción --</option>
-                                        <option value="Si">Si</option>
-                                        <option value="No">No</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
+                <!-- ================= TARJETA 2 ================= -->
+                <div class="card-section">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #f59e0b;" />
+                        Prevención y Recepción
+                    </h3>
 
-                            <tr>
-                                <th>Subsana Prevención y Reinicio del Trámite</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="Expediente.SubsanaPrevencion"
-                                                 disabled="@(Expediente.Prevencion != "Si" || EsSoloConsulta)">
-                                        <option disabled selected value="">-- Seleccione una opción --</option>
-                                        <option value="Si">Si</option>
-                                        <option value="No">No</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>¿Requiere Prevención?</label>
+                            <InputSelect class="modern-input" @bind-Value="_PrevencionBind" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="Si">Sí</option>
+                                <option value="No">No</option>
+                            </InputSelect>
+                        </div>
 
-                            <tr>
-                                <th>Fecha Límite para Prevención (10 días hábiles)</th>
-                                <td>
-                                    <InputDate class="form-control"
-                                               @bind-Value="Expediente.FechaLimitePrevencion"
-                                               disabled />
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Cómo fue Recibida/Registrada en la PNT</th>
-                                <td>
-                                    <InputSelect class="form-control"
-                                                 @bind-Value="_RecibidaRegistradaBind" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione una opción --</option>
-                                        <option value="PNT">PNT</option>
-                                        <option value="Manual">Manual</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Como desea recibir la respuesta la persona solicitante</th>
-                                <td>
-                                    <InputSelect class="form-control" @bind-Value="Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante" disabled="@EsSoloConsulta">
-                                        <option disabled selected value="">-- Seleccione una opción --</option>
-                                        <option value="Electrónico PNT">Electrónico PNT</option>
-                                        <option value="Correo">Correo</option>
-                                        <option value="Otro">Otro</option>
-                                        <option value="No aplica">No aplica</option>
-                                    </InputSelect>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        <div class="input-group">
+                            <label>Subsana Prevención</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.SubsanaPrevencion" disabled="@(Expediente.Prevencion != "Si" || EsSoloConsulta)">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="Si">Sí</option>
+                                <option value="No">No</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label>Fecha Límite para Prevención</label>
+                            <InputDate class="modern-input input-readonly" @bind-Value="Expediente.FechaLimitePrevencion" disabled />
+                        </div>
+
+                        <div class="divider span-2"></div>
+
+                        <div class="input-group span-2">
+                            <label>Vía de Recepción</label>
+                            <InputSelect class="modern-input" @bind-Value="_RecibidaRegistradaBind" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="PNT">PNT</option>
+                                <option value="Manual">Manual</option>
+                                <option value="Otro">Otro</option>
+                            </InputSelect>
+                        </div>
+
+                        @if (_RecibidaRegistradaBind == "Manual")
+                        {
+                            <div class="input-group span-2">
+                                <label>Medio de Recepción Manual</label>
+                                <InputSelect class="modern-input" @bind-Value="Expediente.MedioRecepcionSolicitudManual" disabled="@EsSoloConsulta">
+                                    <option disabled selected value="">-- Seleccione --</option>
+                                    <option value="CORREO ELECTRÓNICO">CORREO ELECTRÓNICO</option>
+                                    <option value="PRESENTACIÓN EN MÓDULO">PRESENTACIÓN EN MÓDULO</option>
+                                    <option value="Otro">Otro</option>
+                                </InputSelect>
+                            </div>
+
+                            @if (Expediente.MedioRecepcionSolicitudManual == "Otro")
+                            {
+                                <div class="input-group span-2">
+                                    <label>Especifique otro medio manual</label>
+                                    <InputText class="modern-input" @bind-Value="_EspecificarMedioManual" disabled="@EsSoloConsulta" placeholder="Ej. Comparecencia..." />
+                                </div>
+                            }
+                        }
+                        else if (_RecibidaRegistradaBind == "Otro")
+                        {
+                            <div class="input-group span-2">
+                                <label>Especifique otra Vía de Recepción</label>
+                                <InputText class="modern-input" @bind-Value="Expediente.MedioRecepcionSolicitudManual" disabled="@EsSoloConsulta" placeholder="Ej. Plataforma estatal..." />
+                            </div>
+                        }
+
+                        <div class="input-group span-2">
+                            <label>Forma de Entrega Deseada</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="ELECTRÓNICO A TRAVÉS DE PNT">ELECTRÓNICO A TRAVÉS DE PNT</option>
+                                <option value="CORREO ELECTRÓNICO">CORREO ELECTRÓNICO</option>
+                                <option value="MEDIO ELECTRÓNICO DEL SOLICITANTE">MEDIO ELECTRÓNICO DEL SOLICITANTE</option>
+                                <option value="COPIA SIMPLE">COPIA SIMPLE</option>
+                                <option value="COPIA CERTIFICADA">COPIA CERTIFICADA</option>
+                                <option value="CUALQUIER OTRO MEDIO ELECTRÓNICO">CUALQUIER OTRO MEDIO ELECTRÓNICO</option>
+                            </InputSelect>
+                        </div>
+
+                        @if (Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante == "CORREO ELECTRÓNICO")
+                        {
+                            <div class="input-group span-2">
+                                <label>Ingresa el Correo Electrónico</label>
+                                <InputText class="modern-input" @bind-Value="Expediente.CorreoElectronico" disabled="@EsSoloConsulta" placeholder="ejemplo@correo.com" />
+                            </div>
+                        }
+                        else if (Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante == "CUALQUIER OTRO MEDIO ELECTRÓNICO")
+                        {
+                            <div class="input-group span-2">
+                                <label>Especifique otro medio de entrega</label>
+                                <InputText class="modern-input" @bind-Value="_EspecificarOtroMedioEntrega" disabled="@EsSoloConsulta" placeholder="Ej. WhatsApp, USB..." />
+                            </div>
+                        }
+                    </div>
                 </div>
+
+                <!-- ================= TARJETA 3 ================= -->
+                <div class="card-section">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #8b5cf6;" />
+                        Clasificación de la Información
+                    </h3>
+
+                    <div class="form-grid">
+                        <div class="input-group span-2">
+                            <label>Área Poseedora de la Información</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.AreaInformacion" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione un Área --</option>
+                                @foreach (var area in CatalogoAreas)
+                                {
+                                    <option value="@area">@area</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- 🔥 MODIFICADO: Materia por Catálogo -->
+                        <div class="input-group">
+                            <label>Materia</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.Materia" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var materia in Catalogos.Materia)
+                                {
+                                    <option value="@materia">@materia</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- 🔥 MODIFICADO: Temática por Catálogo -->
+                        <div class="input-group">
+                            <label>Temática</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.Tematica" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var tematica in Catalogos.Tematica)
+                                {
+                                    <option value="@tematica">@tematica</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label>Temática Específica</label>
+                            <InputText class="modern-input" @bind-Value="Expediente.TematicaEspecifica" disabled="@EsSoloConsulta" placeholder="Especifique los detalles..." />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= TARJETA 4 ================= -->
+                <div class="card-section">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #10b981;" />
+                        Resolución y Entrega
+                    </h3>
+
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Estatus Actual</label>
+                            <InputSelect class="modern-input fw-bold text-primary" @bind-Value="Expediente.Estatus" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="INICIO">INICIO</option>
+                                <option value="EN PROCESO">EN PROCESO</option>
+                                <option value="EN PREVENCIÓN">EN PREVENCIÓN</option>
+                                <option value="EN AMPLIACIÓN">EN AMPLIACIÓN</option>
+                                <option value="TERMINADA">TERMINADA</option>
+                                <option value="DESECHADA">DESECHADA</option>
+                                <option value="CANCELADA">CANCELADA</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Fecha Real de Respuesta</label>
+                            <InputDate class="modern-input" @bind-Value="Expediente.FechaRespuesta" disabled="@EsSoloConsulta" />
+                        </div>
+
+                        <div class="input-group">
+                            <label>Sentido de la Respuesta</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.SentidoRespuesta" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="Afirmativa">Afirmativa</option>
+                                <option value="Negativa">Negativa</option>
+                                <option value="Parcial">Parcial</option>
+                            </InputSelect>
+                        </div>
+
+                        <!-- 🔥 MODIFICADO: Precisión del sentido por Catálogo -->
+                        <div class="input-group">
+                            <label>Precisión del Sentido</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.PrecisionSentidoRespuesta" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var precision in Catalogos.PrecicionSentidoRespuesta)
+                                {
+                                    <option value="@precision">@precision</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- 🔥 MODIFICADO: Modalidad de Entrega por Catálogo -->
+                        <div class="input-group">
+                            <label>Modalidad de Entrega Real</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.ModalidadEntrega" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                @foreach (var modalidad in Catalogos.ModalidadEntrega)
+                                {
+                                    <option value="@modalidad">@modalidad</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Cobro (Monto o N/A)</label>
+                            <InputText class="modern-input" @bind-Value="Expediente.Cobro" disabled="@EsSoloConsulta" placeholder="Ej. N/A o $150.00" />
+                        </div>
+
+                        @if (Expediente.Ampliacion == "Si")
+                        {
+                            <div class="divider span-2"></div>
+                            <div class="input-group">
+                                <label>N° Sesión Comité (Ampliación)</label>
+                                <InputNumber class="modern-input" @bind-Value="Expediente.NumeroSesionComiteAmpliacion" disabled="@EsSoloConsulta" />
+                            </div>
+
+                            <div class="input-group">
+                                <label>Fecha Sesión Comité</label>
+                                <InputDate class="modern-input" @bind-Value="Expediente.FechaSesionComiteAmpliacion" disabled="@EsSoloConsulta" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- ================= TARJETA 5 ================= -->
+                <div class="card-section">
+                    <h3 class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.Gavel" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #ef4444;" />
+                        Medios de Impugnación y Notas
+                    </h3>
+
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>¿Interpuso Recurso de Revisión?</label>
+                            <InputSelect class="modern-input" @bind-Value="Expediente.RecursoRevision" disabled="@EsSoloConsulta">
+                                <option disabled selected value="">-- Seleccione --</option>
+                                <option value="Si">Sí</option>
+                                <option value="No">No</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="input-group">
+                            <label>N° de Recurso</label>
+                            <InputNumber class="modern-input" @bind-Value="Expediente.NumeroRecursoRevision" disabled="@(Expediente.RecursoRevision != "Si" || EsSoloConsulta)" />
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label>Datos del Recurso</label>
+                            <InputTextArea class="modern-input" @bind-Value="Expediente.DatosRecursoRevision" disabled="@(Expediente.RecursoRevision != "Si" || EsSoloConsulta)" rows="2" placeholder="Motivo o detalle del recurso de revisión..." />
+                        </div>
+
+                        <div class="divider span-2"></div>
+
+                        <div class="input-group span-2">
+                            <label>Notas / Observaciones Internas</label>
+                            <InputTextArea class="modern-input" @bind-Value="Expediente.Nota" disabled="@EsSoloConsulta" rows="3" placeholder="Comentarios adicionales para control interno..." />
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            @if (!EsSoloConsulta)
-            {
-                <button type="submit" class="btn btn-primary">Guardar cambios</button>
-            }
         </EditForm>
     }
     else
     {
-        <p class="text-center text-muted">Cargando detalles...</p>
+        <div class="loading-state">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <p>Cargando información del expediente...</p>
+        </div>
     }
 </div>
 
 @code {
+    // Variable local para el campo "Otro"
+    private string OtraFormaEntregaEspecifica { get; set; } = string.Empty;
+    private string _EspecificarMedioManual = string.Empty;
+    private string _EspecificarOtroMedioEntrega = string.Empty;
+
+    private readonly List<string> CatalogoAreas = new List<string>
+    {
+        "AUTORIDAD GARANTE DEL PODER JUDICIAL",
+        "CENTRO DE CONVIVENCIA FAMILIAR SUPERVISADA",
+        "CENTRO ESTATAL DE JUSTICIA ALTERNATIVA",
+        "COMISIÓN DE CARRERA JUDICIAL",
+        "COMISIÓN DE VIGILANCIA Y DISCIPLINA",
+        "COMUNICACIÓN SOCIAL Y RELACIONES PÚBLICAS",
+        "CONSEJO DE ADMINISTRACIÓN",
+        "CONTRALORÍA",
+        "COORDINACIÓN DE PERITAJE",
+        "COORDINACIÓN DE PERITOS",
+        "DELEGACIÓN DE OFICIALÍA MAYOR EN ENSENADA Y SAN QUINTÍN",
+        "DELEGACIÓN DE OFICIALÍA MAYOR EN TIJUANA, TECATE Y PLAYAS DE ROSARITO",
+        "DEPARTAMENTO DE CONTABILIDAD Y FINANZAS",
+        "DEPARTAMENTO DE INFORMÁTICA",
+        "DEPARTAMENTO DE PROGRAMACIÓN Y PRESUPUESTOS",
+        "DEPARTAMENTO DE RECURSOS HUMANOS",
+        "DEPARTAMENTO DE SERVICIOS GENERALES",
+        "DEPARTAMENTO DEL FONDO AUXILIAR",
+        "DIRECCIÓN DE PLANEACIÓN, INNOVACIÓN Y ESTADÍSTICA",
+        "DIRECCIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN",
+        "ESCUELA DE FORMACIÓN JUDICIAL",
+        "INSTITUTO DE LA JUDICATURA",
+        "OFICIALÍA DE PARTES COMÚN",
+        "OFICIALÍA MAYOR",
+        "ÓRGANO INTERNO DE CONTROL",
+        "SECRETARÍA GENERAL DE ACUERDOS DEL TRIBUNAL SUPERIOR DE JUSTICIA",
+        "SECRETARÍA GENERAL DEL CONSEJO DE ADMINISTRACIÓN",
+        "SECRETARÍA GENERAL DEL CONSEJO DE LA JUDICATURA",
+        "SERVICIO MÉDICO FORENSE",
+        "SISTEMA DE JUSTICIA PENAL ORAL",
+        "TRIBUNAL DE DISCIPLINA JUDICIAL",
+        "TRIBUNAL LABORAL",
+        "UNIDAD DE PLANEACIÓN Y DESARROLLO",
+        "UNIDAD DE TRANSPARENCIA",
+        "UNIDAD JURÍDICA Y ASESORÍA INTERNA"
+    };
+
     [Parameter] public int Id { get; set; }
     [Parameter] public string Folio { get; set; } = string.Empty;
 
-    private ClaimsPrincipal Usuario;
+    private ClaimsPrincipal? Usuario;
     private bool EsSoloConsulta => Usuario?.IsInRole("CONSULTA") ?? false;
 
     private Expediente Expediente { get; set; } = new Expediente();
@@ -239,6 +521,8 @@
             {
                 Id = expedienteDTO.Id,
                 Folio = expedienteDTO.Folio ?? string.Empty,
+                AnoAdmision = expedienteDTO.AnoAdmision,
+                MesAdmision = expedienteDTO.MesAdmision ?? string.Empty,
                 TipoSolicitud = expedienteDTO.TipoSolicitud ?? string.Empty,
                 TipoDerecho = expedienteDTO.TipoDerecho ?? string.Empty,
                 FechaInicioTramite = expedienteDTO.FechaInicio,
@@ -246,15 +530,58 @@
                 Ampliacion = expedienteDTO.Ampliacion ?? string.Empty,
                 Estatus = expedienteDTO.Estado ?? string.Empty,
                 FechaRespuesta = expedienteDTO.FechaRespuesta,
-                Prevencion = expedienteDTO.Prevencion ? "Si" : "No",   // ✅ conversión bool → string
+                Prevencion = expedienteDTO.Prevencion ? "Si" : "No",
                 SubsanaPrevencion = expedienteDTO.SubsanaPrevencionReinicoTramite ?? string.Empty,
                 FechaLimitePrevencion = expedienteDTO.FechaLimitePrevencion10dias,
                 RecibidaRegistrada = expedienteDTO.RecibidaRegistrada ?? string.Empty,
-                ComoDeseaRecibirRespuestaPersonaSolicitante = expedienteDTO.ComoDeseaRecibirRespuestaPersonaSolicitante ?? string.Empty,
                 Nombre = expedienteDTO.NombreSolicitante ?? string.Empty,
                 CorreoElectronico = expedienteDTO.CorreoElectronicoSolicitante ?? string.Empty,
-                ContenidoSolicitud = expedienteDTO.ContenidoSolicitud ?? string.Empty
+                ContenidoSolicitud = expedienteDTO.ContenidoSolicitud ?? string.Empty,
+
+                Ciudad = expedienteDTO.CiudadSolicitante ?? string.Empty,
+                AreaInformacion = expedienteDTO.AreaPoseedoraInformacion ?? string.Empty,
+                Materia = expedienteDTO.Materia ?? string.Empty,
+                Tematica = expedienteDTO.Tematica ?? string.Empty,
+                TematicaEspecifica = expedienteDTO.TematicaEspecifica ?? string.Empty,
+                SentidoRespuesta = expedienteDTO.SentidoRespuesta ?? string.Empty,
+                PrecisionSentidoRespuesta = expedienteDTO.PrecisionSentidoRespuesta ?? string.Empty,
+                ModalidadEntrega = expedienteDTO.ModalidadEntrega ?? string.Empty,
+                Cobro = expedienteDTO.Cobro ?? string.Empty,
+                RecursoRevision = expedienteDTO.RecursoRevision ?? string.Empty,
+                NumeroRecursoRevision = expedienteDTO.NumeroRecursoRevision,
+                DatosRecursoRevision = expedienteDTO.DatosRecursoRevision ?? string.Empty,
+                NumeroSesionComiteAmpliacion = expedienteDTO.NumeroSesionComiteAmpliacion,
+                FechaSesionComiteAmpliacion = expedienteDTO.FechaSesionComiteAmpliacion,
+                Nota = expedienteDTO.Nota ?? string.Empty
             };
+
+            // 🔥 TRUCO MAGICO: Extraer "Otro" si viene concatenado de la base de datos
+            string medioManualDB = expedienteDTO.MedioRecepcionSolicitudManual ?? string.Empty;
+            if (medioManualDB.StartsWith("Otro: "))
+            {
+                Expediente.MedioRecepcionSolicitudManual = "Otro";
+                _EspecificarMedioManual = medioManualDB.Substring(6);
+            }
+            else
+            {
+                Expediente.MedioRecepcionSolicitudManual = medioManualDB;
+            }
+
+            string formaEntregaDB = expedienteDTO.ComoDeseaRecibirRespuestaPersonaSolicitante ?? string.Empty;
+            if (formaEntregaDB.StartsWith("Otro: "))
+            {
+                Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante = "CUALQUIER OTRO MEDIO ELECTRÓNICO";
+                _EspecificarOtroMedioEntrega = formaEntregaDB.Substring(6);
+            }
+            else if (formaEntregaDB.StartsWith("Otro Forma: "))
+            {
+                Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante = "Otro";
+                OtraFormaEntregaEspecifica = formaEntregaDB.Substring(12);
+            }
+            else
+            {
+                Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante = formaEntregaDB;
+            }
         }
         else
         {
@@ -266,14 +593,14 @@
     {
         if (!string.IsNullOrEmpty(Expediente.TipoSolicitud))
         {
-            var dias = Expediente.TipoSolicitud == "DAI" ? 10 : 20;
-            if (Expediente.Ampliacion == "Si") dias *= 2;
+            var dias = 20;
+            if (Expediente.Ampliacion == "Si") dias += 10;
             Expediente.FechaLimiteRespuesta = CalcularFechaLimite(Expediente.FechaInicioTramite, dias);
         }
 
         if (Expediente.Prevencion == "Si")
         {
-            Expediente.FechaLimitePrevencion = CalcularFechaLimite(Expediente.FechaInicioTramite, 10);
+            Expediente.FechaLimitePrevencion = CalcularFechaLimite(Expediente.FechaInicioTramite, 20);
         }
         else
         {
@@ -334,31 +661,76 @@
         set => Expediente.RecibidaRegistrada = value;
     }
 
-    private async Task HandleValidSubmit()
+    private async Task ForzarGuardado()
     {
-        var expedienteDTO = new ExpedienteDTO
-        {
-            Id = Expediente.Id,
-            Folio = Expediente.Folio,
-            TipoSolicitud = Expediente.TipoSolicitud,
-            TipoDerecho = Expediente.TipoDerecho,
-            FechaInicio = Expediente.FechaInicioTramite,
-            FechaLimiteRespuesta10dias = Expediente.TipoSolicitud == "DAI" ? Expediente.FechaLimiteRespuesta : null,
-            FechaLimiteRespuesta20dias = Expediente.TipoSolicitud == "ARCO" ? Expediente.FechaLimiteRespuesta : null,
-            Ampliacion = Expediente.Ampliacion,
-            Estado = Expediente.Estatus,
-            FechaRespuesta = Expediente.FechaRespuesta,
-            Prevencion = Expediente.Prevencion == "Si",   // ✅ conversión string → bool
-            SubsanaPrevencionReinicoTramite = Expediente.SubsanaPrevencion,
-            FechaLimitePrevencion10dias = Expediente.FechaLimitePrevencion,
-            RecibidaRegistrada = Expediente.RecibidaRegistrada,
-            ComoDeseaRecibirRespuestaPersonaSolicitante = Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante,
-            NombreSolicitante = Expediente.Nombre,
-            CorreoElectronicoSolicitante = Expediente.CorreoElectronico,
-            ContenidoSolicitud = Expediente.ContenidoSolicitud
-        };
+        var listaExpedientes = await ExpedienteService.Lista();
+        var expedienteOriginal = listaExpedientes.FirstOrDefault(e => e.Id == Expediente.Id);
 
-        var exito = await ExpedienteService.Actualizar(expedienteDTO);
+        if (expedienteOriginal == null) return;
+
+        expedienteOriginal.Folio = Expediente.Folio;
+        expedienteOriginal.AnoAdmision = Expediente.AnoAdmision;
+        expedienteOriginal.MesAdmision = Expediente.MesAdmision;
+        expedienteOriginal.TipoSolicitud = Expediente.TipoSolicitud;
+        expedienteOriginal.TipoDerecho = Expediente.TipoDerecho;
+        expedienteOriginal.FechaInicio = Expediente.FechaInicioTramite;
+        expedienteOriginal.FechaLimiteRespuesta10dias = Expediente.TipoSolicitud == "DAI" ? Expediente.FechaLimiteRespuesta : null;
+        expedienteOriginal.FechaLimiteRespuesta20dias = Expediente.TipoSolicitud == "ARCO" ? Expediente.FechaLimiteRespuesta : null;
+        expedienteOriginal.Ampliacion = Expediente.Ampliacion;
+        expedienteOriginal.Estado = Expediente.Estatus;
+        expedienteOriginal.FechaRespuesta = Expediente.FechaRespuesta;
+        expedienteOriginal.Prevencion = Expediente.Prevencion == "Si";
+        expedienteOriginal.SubsanaPrevencionReinicoTramite = Expediente.SubsanaPrevencion;
+        expedienteOriginal.FechaLimitePrevencion10dias = Expediente.FechaLimitePrevencion;
+        expedienteOriginal.RecibidaRegistrada = Expediente.RecibidaRegistrada;
+        expedienteOriginal.NombreSolicitante = Expediente.Nombre;
+        expedienteOriginal.CorreoElectronicoSolicitante = Expediente.CorreoElectronico;
+        expedienteOriginal.ContenidoSolicitud = Expediente.ContenidoSolicitud;
+
+        // 🔥 Lógica para encapsular los campos "Otro" y guardarlos en BD
+        if (Expediente.RecibidaRegistrada == "Manual" && Expediente.MedioRecepcionSolicitudManual == "Otro")
+        {
+            expedienteOriginal.MedioRecepcionSolicitudManual = "Otro: " + _EspecificarMedioManual;
+        }
+        else if (Expediente.RecibidaRegistrada == "Otro")
+        {
+            expedienteOriginal.MedioRecepcionSolicitudManual = Expediente.MedioRecepcionSolicitudManual;
+        }
+        else
+        {
+            expedienteOriginal.MedioRecepcionSolicitudManual = Expediente.MedioRecepcionSolicitudManual;
+        }
+
+        if (Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante == "CUALQUIER OTRO MEDIO ELECTRÓNICO")
+        {
+            expedienteOriginal.ComoDeseaRecibirRespuestaPersonaSolicitante = "Otro: " + _EspecificarOtroMedioEntrega;
+        }
+        else if (Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante == "Otro")
+        {
+            expedienteOriginal.ComoDeseaRecibirRespuestaPersonaSolicitante = "Otro Forma: " + OtraFormaEntregaEspecifica;
+        }
+        else
+        {
+            expedienteOriginal.ComoDeseaRecibirRespuestaPersonaSolicitante = Expediente.ComoDeseaRecibirRespuestaPersonaSolicitante;
+        }
+
+        expedienteOriginal.CiudadSolicitante = Expediente.Ciudad;
+        expedienteOriginal.AreaPoseedoraInformacion = Expediente.AreaInformacion;
+        expedienteOriginal.Materia = Expediente.Materia;
+        expedienteOriginal.Tematica = Expediente.Tematica;
+        expedienteOriginal.TematicaEspecifica = Expediente.TematicaEspecifica;
+        expedienteOriginal.SentidoRespuesta = Expediente.SentidoRespuesta;
+        expedienteOriginal.PrecisionSentidoRespuesta = Expediente.PrecisionSentidoRespuesta;
+        expedienteOriginal.ModalidadEntrega = Expediente.ModalidadEntrega;
+        expedienteOriginal.Cobro = Expediente.Cobro;
+        expedienteOriginal.RecursoRevision = Expediente.RecursoRevision;
+        expedienteOriginal.NumeroRecursoRevision = Expediente.NumeroRecursoRevision;
+        expedienteOriginal.DatosRecursoRevision = Expediente.DatosRecursoRevision;
+        expedienteOriginal.NumeroSesionComiteAmpliacion = Expediente.NumeroSesionComiteAmpliacion;
+        expedienteOriginal.FechaSesionComiteAmpliacion = Expediente.FechaSesionComiteAmpliacion;
+        expedienteOriginal.Nota = Expediente.Nota;
+
+        var exito = await ExpedienteService.Actualizar(expedienteOriginal);
         if (exito)
         {
             await JSRuntime.InvokeVoidAsync("alert", "Cambios guardados correctamente.");
@@ -369,4 +741,228 @@
             await JSRuntime.InvokeVoidAsync("alert", "Error al guardar los cambios.");
         }
     }
+
+    private void VolverAtras()
+    {
+        Navigation.NavigateTo("/menu/modulo-solicitudes/indice-expedientes");
+    }
+
+    private string ObtenerClaseEstatus(string? estatus)
+    {
+        if (string.IsNullOrEmpty(estatus)) return "bg-gray";
+        return estatus.ToLower().Contains("terminada") ? "bg-green" : "bg-blue";
+    }
 }
+
+<style>
+    .page-container {
+        padding: 1.5rem 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0.5rem 0 0.2rem 0;
+        letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+        color: #64748b;
+        font-size: 1.05rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .badge-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: white;
+        display: inline-block;
+    }
+
+    .bg-blue { background-color: #3b82f6; }
+    .bg-green { background-color: #10b981; }
+    .bg-gray { background-color: #94a3b8; }
+
+    .header-actions { display: flex; gap: 12px; }
+
+    .btn-primary, .btn-outline {
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background-color: #4f46e5;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn-primary:hover {
+        background-color: #4338ca;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline {
+        background-color: transparent;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+    }
+
+    .btn-outline:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+
+    .stage-indicator {
+        display: flex;
+        margin-bottom: 2rem;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+    }
+
+    .stage {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #0f172a;
+    }
+
+    .stage-dot {
+        width: 12px;
+        height: 12px;
+        background-color: #4f46e5;
+        border-radius: 50%;
+        margin-right: 10px;
+        box-shadow: 0 0 0 4px #e0e7ff;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    @@media (max-width: 968px) {
+        .content-grid { grid-template-columns: 1fr; }
+    }
+
+    .card-section {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -2px rgba(0,0,0,0.03);
+        border: 1px solid #e2e8f0;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 20px;
+    }
+
+    .input-group { display: flex; flex-direction: column; }
+    .span-2 { grid-column: span 2; }
+
+    .input-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .modern-input {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        color: #0f172a;
+        transition: all 0.2s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .modern-input:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px #e0e7ff;
+        background-color: #fff;
+    }
+
+    .modern-input:disabled, .input-readonly {
+        background-color: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        border-style: dashed;
+    }
+
+    select.modern-input {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        padding-right: 40px;
+    }
+
+    .divider {
+        height: 1px;
+        background-color: #e2e8f0;
+        margin: 10px 0;
+    }
+
+    .alert-readonly {
+        background-color: #fffbeb;
+        color: #b45309;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        border: 1px solid #fde68a;
+    }
+</style>

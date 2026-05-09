@@ -24,7 +24,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
         public async Task<LoginResponse> Login(LoginDTO model)
         {
 
-            var response = await _http.PostAsJsonAsync("https://localhost:7123/api/Auth/login", model );
+            var response = await _http.PostAsJsonAsync("/api/Auth/login", model );
 
             //if (!response.IsSuccessStatusCode)
             if (!response.IsSuccessStatusCode)

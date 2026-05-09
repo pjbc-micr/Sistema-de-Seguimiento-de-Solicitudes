@@ -1,7 +1,6 @@
 ﻿@page "/menu/modulo-solicitudes/Calendario"
 
 @attribute [Authorize]
-@*@attribute [Authorize(Roles = "ADMINISTRADOR,CAPTURISTA,OBSERVADOR")]*@
 
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
@@ -17,70 +16,107 @@
 @inject ICalendarioService CalendarioService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
+<PageTitle>Calendario de Vencimientos</PageTitle>
 
-<PageTitle>Calendario</PageTitle>
-
-<div class="calendar-container">
-    <div class="controls-bar">
-        <RadzenLabel Text="Mostrar encabezado:" />
-        <RadzenSwitch @bind-Value="@showHeader" />
-        <RadzenButton Text="Ver vencimientos"
-                      Style="background-color: #0d6efd; color: white;"
-                      Click="@MostrarEventosPorVencimiento"
-                      Icon="event" />
-
-        @if (esAdminOSupervision)
-        {
-            <RadzenDatePicker @bind-Value="@fechaSeleccionada"
-            DateFormat="dd/MM/yyyy"
-            Placeholder="dd/mm/yyyy"
-            Style="width: 200px; text-align-last: center;" />
-
-            <RadzenButton Text="Activar/Desactivar día"
-            Style="background-color: #198754; color: white;"
-            Click="@ToggleDiaManual" />
-        }
+<div class="page-container">
+    <div class="header-flex">
+        <h2 class="page-title">Calendario de Solicitudes</h2>
     </div>
 
-    <RadzenScheduler @ref="@scheduler"
-    SlotRender="@OnSlotRender"
-    style="height: 100%; width: 100%;"
-    TItem="EventoSolicitud"
-    Data="@eventos"
-    StartProperty="Start"
-    EndProperty="End"
-    ShowHeader="@showHeader"
-    TextProperty="Title"
-    SelectedIndex="2"
-    AppointmentRender="@OnAppointmentRender">
-        <RadzenDayView />
-        <RadzenWeekView />
-        <RadzenMonthView />
-    </RadzenScheduler>
-</div>
+    <div class="filters-action-bar">
+        <div class="filters-group">
+            <div class="toggle-group shadow-sm">
+                <span class="text-muted fw-bold" style="font-size: 0.85rem; text-transform: uppercase;">Encabezado:</span>
+                <RadzenSwitch @bind-Value="@showHeader" Style="margin-left: 12px;" />
+            </div>
 
-@* <EventConsole @ref=@console /> *@
+            <div class="v-divider"></div>
+
+            @if (esAdminOSupervision)
+            {
+                <div class="filter-item-date d-flex align-items-center gap-2">
+                    <RadzenDatePicker @bind-Value="@fechaSeleccionada"
+                                      DateFormat="dd/MM/yyyy"
+                                      Placeholder="Día laborable..."
+                                      Class="pro-input shadow-sm" />
+
+                    <button class="btn-action-outline shadow-sm" @onclick="ToggleDiaManual" title="Activar/Desactivar Día" style="height: 42px; width: 42px;">
+                        <i class="bi bi-calendar-x"></i>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="actions-group">
+            <button class="btn-primary-pro" @onclick="MostrarEventosPorVencimiento">
+                <i class="bi bi-exclamation-triangle-fill nav-icon" style="margin-right: 8px;"></i> Ver Próximos a Vencer
+            </button>
+        </div>
+    </div>
+
+    <div class="pro-table-card">
+        <RadzenScheduler @ref="@scheduler"
+                         SlotRender="@OnSlotRender"
+                         style="height: calc(100vh - 280px); width: 100%; border: none;"
+                         TItem="EventoSolicitud"
+                         Data="@eventos"
+                         StartProperty="Start"
+                         EndProperty="End"
+                         ShowHeader="@showHeader"
+                         TextProperty="Title"
+                         SelectedIndex="2"
+                         AppointmentRender="@OnAppointmentRender">
+            <RadzenDayView />
+            <RadzenWeekView />
+            <RadzenMonthView />
+        </RadzenScheduler>
+    </div>
+</div>
 
 @code {
     RadzenScheduler<EventoSolicitud>? scheduler;
-    // EventConsole console;
-    Dictionary<DateTime, string> events = new Dictionary<DateTime, string>();
 
     bool showHeader = true;
 
-    // Rol
     private ClaimsPrincipal usuarioActual;
     private bool esAdminOSupervision;
 
     private List<EventoSolicitud> eventos = new List<EventoSolicitud>();
 
-    // datepickker variables
     DateTime? fechaSeleccionada;
     List<DateTime> diasApagadosManualmente = new();
 
+    // 🔥 NUEVO MÉTODO: Calcula la fecha límite saltando fines de semana, festivos y días manuales
+    private DateTime CalcularFechaLimite(DateTime inicio, int dias)
+    {
+        var fecha = inicio.Date;
+        while (dias > 0)
+        {
+            fecha = fecha.AddDays(1);
+            if (EsDiaLaborable(fecha))
+            {
+                dias--;
+            }
+        }
+        return fecha;
+    }
+    private readonly List<DateTime> diasFestivos = new List<DateTime>
+    {
+        new DateTime(DateTime.Now.Year, 1, 1),
+        new DateTime(DateTime.Now.Year, 2, 5),
+        new DateTime(DateTime.Now.Year, 3, 21),
+        new DateTime(DateTime.Now.Year, 5, 1),
+        new DateTime(DateTime.Now.Year, 9, 16),
+        new DateTime(DateTime.Now.Year, 11, 2),
+        new DateTime(DateTime.Now.Year, 11, 20),
+        new DateTime(DateTime.Now.Year, 12, 12),
+        new DateTime(DateTime.Now.Year, 12, 25),
+        new DateTime(DateTime.Now.Year, 12, 24),
+        new DateTime(DateTime.Now.Year, 12, 31)
+    };
+
     protected override async Task OnInitializedAsync()
     {
-        // Rol
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         usuarioActual = authState.User;
 
@@ -92,66 +128,61 @@
             .Select(d => d.Fecha.Date)
             .ToList();
 
-        // eventos = expedienteList
-        //     .Where(expediente => expediente?.FechaInicio != null)
-        //     .Select(expediente =>
-        //     {
-        //         int diasRequeridos = expediente.TipoSolicitud == "ARCO" ? 20 : 10;
-        //         DateTime inicio = expediente.FechaInicio;
-        //         DateTime end = CalcularFechaLimite(inicio, diasRequeridos);
-
-        //         return new EventoSolicitud
-        //             {
-        //                 Title = $"{expediente.Folio} – {expediente.NombreSolicitante}",
-        //                 Start = inicio,
-        //                 End = end,
-        //                 TipoSolicitud = expediente.TipoSolicitud!,
-        //                 TienePrevencion = false,
-        //                 EsUrgente = false
-        //             };
-        //     }).ToList();
-
-        eventos = expedienteList
-            .Where(expediente => expediente?.FechaInicio != null)
-            .Select(expediente =>
-             {
-                 DateTime inicio = expediente.FechaInicio;
-
-                 // Prioriza Prevención > Ampliación > Normal
-                 DateTime? fechaFin = null;
-
-                 if (expediente.Prevencion == true && expediente.FechaLimitePrevencion10dias.HasValue)
-                 {
-                     fechaFin = expediente.FechaLimitePrevencion10dias.Value;
-                 }
-                 else if (expediente.Ampliacion == "SI" && expediente.FechaLimiteRespuesta20dias.HasValue)
-                 {
-                     fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
-                 }
-                 else if (expediente.FechaLimiteRespuesta10dias.HasValue)
-                 {
-                     fechaFin = expediente.FechaLimiteRespuesta10dias.Value;
-                 }
-                 else if (expediente.FechaLimiteRespuesta20dias.HasValue)
-                 {
-                     fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
-                 }
-
-                 return new EventoSolicitud
-                    {
-                        Title = $"{expediente.Folio} – {expediente.NombreSolicitante}",
-                        Start = inicio,
-                        End = fechaFin.Value/* .AddDays(1) */,
-                        TipoSolicitud = expediente.TipoSolicitud!,
-                        TienePrevencion = expediente.Prevencion,
-                        EsUrgente = false
-                    };
-             }).ToList();
-
+        eventos = MapearEventos(expedienteList);
     }
 
+    private List<EventoSolicitud> MapearEventos(List<ExpedienteDTO> expedientes)
+    {
+        var listaEventos = new List<EventoSolicitud>();
 
-    // Método para habilitar/deshabilitar un día específico    
+        foreach (var expediente in expedientes.Where(e => e?.FechaInicio != null))
+        {
+            DateTime inicio = expediente.FechaInicio;
+
+            // 🔥 NUEVA REGLA: 20 días hábiles parejo para DAI y ARCO
+            int diasCalculo = 20;
+            
+            // Si tiene ampliación, le sumamos 10 días (Topando en 30)
+            if (expediente.Ampliacion?.ToUpper() == "SI")
+            {
+                diasCalculo += 10;
+            }
+
+            // Calculamos la fecha saltando los días inhábiles
+            DateTime fechaFin = CalcularFechaLimite(inicio, diasCalculo);
+
+            // Respetamos si la base de datos ya tenía una fecha guardada (por si se modificó manual)
+            if (expediente.Prevencion == true && expediente.FechaLimitePrevencion10dias.HasValue)
+            {
+                fechaFin = expediente.FechaLimitePrevencion10dias.Value;
+            }
+            else if (expediente.Ampliacion?.ToUpper() == "SI" && expediente.FechaLimiteRespuesta20dias.HasValue)
+            {
+                fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
+            }
+            else if (expediente.FechaLimiteRespuesta20dias.HasValue)
+            {
+                fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
+            }
+            else if (expediente.FechaLimiteRespuesta10dias.HasValue)
+            {
+                fechaFin = expediente.FechaLimiteRespuesta10dias.Value;
+            }
+
+            listaEventos.Add(new EventoSolicitud
+            {
+                Title = $"{expediente.Folio} – {expediente.NombreSolicitante}",
+                Start = fechaFin.Date, // La pastilla solo se pinta el día de vencimiento
+                End = fechaFin.Date.AddHours(23).AddMinutes(59),
+                TipoSolicitud = expediente.TipoSolicitud ?? "",
+                TienePrevencion = expediente.Prevencion,
+                EsUrgente = false
+            });
+        }
+
+        return listaEventos;
+    }
+
     async Task ToggleDiaManual()
     {
         if (fechaSeleccionada.HasValue)
@@ -160,67 +191,23 @@
 
             if (diasApagadosManualmente.Contains(fecha))
             {
-                diasApagadosManualmente.Remove(fecha); // lo vuelve laborable
-                await CalendarioService.EliminarDiaInhabil(fecha); // eliminar el día inhabil
+                diasApagadosManualmente.Remove(fecha);
+                await CalendarioService.EliminarDiaInhabil(fecha);
             }
             else
             {
-                diasApagadosManualmente.Add(fecha); // lo marca como apagado
-                await CalendarioService.GuardarDiaInhabil(new DiaInhabilManualDTO { Fecha = fecha }); // guardar el día inhabil
+                diasApagadosManualmente.Add(fecha);
+                await CalendarioService.GuardarDiaInhabil(new DiaInhabilManualDTO { Fecha = fecha });
             }
 
-            // 🔁 Recalcular eventos considerando los nuevos días inhabilitados
             var expedienteList = await ExpedienteService.Lista();
+            diasApagadosManualmente = (await CalendarioService.ObtenerDiasInhabiles()).Select(d => d.Fecha.Date).ToList();
 
-            diasApagadosManualmente = (await CalendarioService.ObtenerDiasInhabiles())
-            .Select(d => d.Fecha.Date)
-            .ToList();
-
-            eventos = expedienteList
-                .Where(expediente => expediente?.FechaInicio != null)
-                .Select(expediente =>
-                {
-                    DateTime inicio = expediente.FechaInicio;
-
-                    // Prioriza Prevención > Ampliación > Normal
-                    DateTime? fechaFin = null;
-
-                    if (expediente.Prevencion == true && expediente.FechaLimitePrevencion10dias.HasValue)
-                    {
-                        fechaFin = expediente.FechaLimitePrevencion10dias.Value;
-                    }
-                    else if (expediente.Ampliacion == "SI" && expediente.FechaLimiteRespuesta20dias.HasValue)
-                    {
-                        fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
-                    }
-                    else if (expediente.FechaLimiteRespuesta10dias.HasValue)
-                    {
-                        fechaFin = expediente.FechaLimiteRespuesta10dias.Value;
-                    }
-                    else if (expediente.FechaLimiteRespuesta20dias.HasValue)
-                    {
-                        fechaFin = expediente.FechaLimiteRespuesta20dias.Value;
-                    }
-
-                    return new EventoSolicitud
-                        {
-                            Title = $"{expediente.Folio} – {expediente.NombreSolicitante}",
-                            Start = inicio,
-                            End = fechaFin.Value/* .AddDays(1) */,
-                            TipoSolicitud = expediente.TipoSolicitud!,
-                            TienePrevencion = expediente.Prevencion,
-                            EsUrgente = false
-                        };
-                }).ToList();
-
-            
-
-            scheduler?.Reload(); // Recargar el calendario para reflejar los cambios
+            eventos = MapearEventos(expedienteList);
+            scheduler?.Reload();
         }
     }
 
-
-    // Mostrar Eventos por Vencimiento
     async Task MostrarEventosPorVencimiento()
     {
         var hoy = DateTime.Now.Date;
@@ -230,72 +217,26 @@
             .OrderBy(e => CalcularDiasHabiles(hoy, e.End.Date))
             .ToList();
 
-        await DialogService.OpenAsync<VerEventosVencimiento>("Vencimiento de Solicitudes", new Dictionary<string, object>
-    {
-        { "Eventos", eventosVencidos }
-    }, new DialogOptions { Width = "1000px", Height = "700px" });
+        await DialogService.OpenAsync<VerEventosVencimiento>("Vencimientos Críticos", new Dictionary<string, object>
+        {
+            { "Eventos", eventosVencidos }
+        }, new DialogOptions { Width = "900px", Height = "650px", CssClass = "pro-dialog" });
     }
 
-
-    // Lista de días festivos
-    private readonly List<DateTime> diasFestivos = new List<DateTime>
-    {
-        new DateTime(DateTime.Now.Year, 1, 1),    // Año Nuevo
-        new DateTime(DateTime.Now.Year, 2, 5),    // Día de la Constitución
-        new DateTime(DateTime.Now.Year, 3, 21),   // Natalicio de Benito Juárez
-        new DateTime(DateTime.Now.Year, 5, 1),    // Día del Trabajo
-        new DateTime(DateTime.Now.Year, 9, 16),   // Día de la Independencia
-        new DateTime(DateTime.Now.Year, 11, 2),   // Día de Muertos  
-        new DateTime(DateTime.Now.Year, 11, 20),  // Día de la Revolución Mexicana
-        new DateTime(DateTime.Now.Year, 12, 12),  // Día de la Virgen de Guadalupe 
-        new DateTime(DateTime.Now.Year, 12, 25),  // Navidad
-        new DateTime(DateTime.Now.Year, 12, 24),  // Nochebuena
-        new DateTime(DateTime.Now.Year, 12, 31)   // Fin de año
-    };
-
-    // Método para determinar si una fecha es laborable
     private bool EsDiaLaborable(DateTime fecha)
     {
-        // No es laborable si es fin de semana, festivo o si se desactiva el dia
         return fecha.DayOfWeek != DayOfWeek.Saturday &&
                fecha.DayOfWeek != DayOfWeek.Sunday &&
                !diasFestivos.Contains(fecha.Date) &&
                !diasApagadosManualmente.Contains(fecha.Date);
     }
 
-    // Método para calcular días hábiles entre dos fechas
     private int CalcularDiasHabiles(DateTime inicio, DateTime fin)
     {
-        // int dias = 0;
-
-        // if (inicio <= fin)
-        // {
-        //     for (DateTime fecha = inicio; fecha <= fin; fecha = fecha.AddDays(1))
-        //     {
-        //         if (EsDiaLaborable(fecha))
-        //         {
-        //             dias++;
-        //         }
-        //     }
-        // }
-        // else
-        // {
-        //     for (DateTime fecha = inicio; fecha >= fin; fecha = fecha.AddDays(-1))
-        //     {
-        //         if (EsDiaLaborable(fecha))
-        //         {
-        //             dias--;
-        //         }
-        //     }
-        // }
-
-        // return dias;
-
         int dias = 0;
         DateTime fecha = inicio;
-
         int step = fin >= inicio ? 1 : -1;
-        DateTime endDate = fin.AddDays(step); // Incluir el día final
+        DateTime endDate = fin.AddDays(step);
 
         while (fecha != endDate)
         {
@@ -303,160 +244,258 @@
             fecha = fecha.AddDays(step);
         }
 
-        return Math.Abs(dias);
+        return dias;
     }
-
-    // Método para calcular la fecha límite considerando días hábiles
-    // private DateTime CalcularFechaLimite(DateTime inicio, int diasHabilesRequeridos)
-    // {
-    //     int diasContados = 0;
-    //     DateTime fecha = inicio;
-
-    //     while (diasContados < diasHabilesRequeridos)
-    //     {
-    //         fecha = fecha.AddDays(1);
-    //         if (EsDiaLaborable(fecha))
-    //         {
-    //             diasContados++;
-    //         }
-    //     }
-
-    //     return fecha;
-    // }
 
     void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<EventoSolicitud> args)
     {
-        // Calcular días hábiles restantes
-        var fechaLimiteReal = args.Data.End.Date.AddDays(-1);
+        var fechaLimiteReal = args.Data.Start.Date;
         var diasHabilesRestantes = CalcularDiasHabiles(DateTime.Now.Date, fechaLimiteReal);
 
-        // Determinar clase según tipo de solicitud
-        string tipo = args.Data.TipoSolicitud?.ToUpperInvariant()?.Trim() ?? "";
-        string tipoClase = tipo switch
-        {
-            "ARCO" => "event-arco tooltip-arco tooltip-wrapper",
-            "DAI" => "event-dai tooltip-dai tooltip-wrapper",
-            "" => "event-sintipo tooltip-sintipo tooltip-wrapper", // tipo vacío
-            _ => "event-especial" // sin tooltip
-        };
+        // Asignamos una clase CSS dinámica según la urgencia en lugar de estilos en línea
+        string estadoClase = "";
+        if (diasHabilesRestantes < 0) estadoClase = "evento-vencido";
+        else if (diasHabilesRestantes < 3) estadoClase = "evento-critico";
+        else if (diasHabilesRestantes < 6) estadoClase = "evento-advertencia";
+        else estadoClase = "evento-atiempo";
 
-        // Determinar clase según urgencia
-        string estadoClase = diasHabilesRestantes switch
-        {
-            var d when d < 0 => "event-gris",
-            var d when d < 3 => "event-roja",
-            var d when d < 6 => "event-amarilla",
-            var d when d < 100 => "event-verde",
-            _ => tipoClase
-        };
+        // Concatenamos las clases: la base, el tooltip y el color
+        args.Attributes["class"] = $"evento-base tooltip-wrapper {estadoClase}";
 
-        // Tipo de tooltip según tipo de solicitud
-        string tooltipClase = tipo switch
-        {
-            "ARCO" => "tooltip-arco",
-            "DAI" => "tooltip-dai",
-            "" => "tooltip-sintipo",
-            _ => ""
-        };
-        
-        args.Attributes["class"] = $"{estadoClase} tooltip-wrapper {tooltipClase}";
+        string textoVencimiento = diasHabilesRestantes < 0
+            ? $"¡Vencido por {Math.Abs(diasHabilesRestantes)} días hábiles!"
+            : $"Días hábiles restantes: {diasHabilesRestantes}";
 
-
-        // Tooltip con información detallada
         args.Attributes["data-tooltip"] = $"{args.Data.Title}\n" +
-                                  $"Tipo: {args.Data.TipoSolicitud}\n" +
-                                  $"Inicio: {args.Data.Start:dd/MM/yyyy}\n" +
-                                  $"Fin: {args.Data.End:dd/MM/yyyy}\n" +
-                                  $"Días hábiles restantes: {diasHabilesRestantes}";
-
+                                          $"Tipo: {args.Data.TipoSolicitud}\n" +
+                                          $"Día de Vencimiento: {fechaLimiteReal:dd/MM/yyyy}\n" +
+                                          textoVencimiento;
     }
 
     void OnSlotRender(SchedulerSlotRenderEventArgs args)
     {
         string clases = "";
 
-        // 1. Día actual
         if (args.Start.Date == DateTime.Today.Date)
         {
             clases += " dia-actual";
         }
 
-        // 2. Día no laborable
         if (!EsDiaLaborable(args.Start.Date) || diasApagadosManualmente.Contains(args.Start.Date))
         {
             clases += " rz-scheduler-non-working-time-cell";
-        }
-
-        // 3. Estilo solo para vistas Day y Week (horarios laborales)
-        if ((args.View.Text == "Week" || args.View.Text == "Day") &&
-            args.Start.Hour > 8 && args.Start.Hour < 19)
-        {
-            args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255jose,220,40,.2));";
         }
 
         if (!string.IsNullOrWhiteSpace(clases))
         {
             args.Attributes["class"] = (args.Attributes.ContainsKey("class") ? args.Attributes["class"] + " " : "") + clases.Trim();
         }
-
-        // if (diasApagadosManualmente.Contains(args.Start.Date))
-        // {
-        //     args.Attributes["class"] += " rz-scheduler-non-working-time-cell";
-        //     args.Attributes["style"] = "background-color: #ffe6e6;"; // Color personalizado
-        // }
     }
-
 }
 
 <style>
-    /* Estructura principal */
-    .calendar-container {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 120px);
-        padding: 1rem;
-        background-color: #f8f9fa;
+    /* ================= PALETA SaaS PRO ================= */
+    :root {
+        --pro-bg-body: #f1f5f9;
+        --pro-card-bg: #ffffff;
+        --pro-text-main: #1e293b;
+        --pro-text-muted: #64748b;
+        --pro-border: #e2e8f0;
+        --pro-primary: #4f46e5;
     }
 
-    /* Barra de controles */
-    .controls-bar {
+    .page-container {
+        padding: 2rem;
+        max-width: 1600px;
+        margin: 0 auto;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .header-flex {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--pro-text-main);
+        margin: 0;
+        letter-spacing: -0.025em;
+    }
+
+    /* ================= CONTROLES ================= */
+    .filters-action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filters-group {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .toggle-group {
+        display: flex;
+        align-items: center;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--pro-border);
+    }
+
+    .v-divider {
+        width: 1px;
+        height: 24px;
+        background-color: var(--pro-border);
+        margin: 0 4px;
+    }
+
+    .pro-input .rz-inputtext {
+        height: 42px !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--pro-border) !important;
+        box-shadow: none !important;
+        padding: 0 1rem !important;
+    }
+
+    .btn-action-outline {
+        border-radius: 8px;
+        border: 1px solid var(--pro-border);
+        background: white;
+        color: var(--pro-text-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+        .btn-action-outline:hover {
+            color: var(--pro-primary);
+            border-color: var(--pro-primary);
+            background: #f5f3ff;
+        }
+
+    .btn-primary-pro {
+        height: 42px;
+        padding: 0 1.25rem;
+        border-radius: 8px;
+        border: none;
+        background-color: var(--pro-primary);
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+    }
+
+        .btn-primary-pro:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
+        }
+
+    /* ================= TARJETA DEL CALENDARIO ================= */
+    .pro-table-card {
+        background: var(--pro-card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--pro-border);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         padding: 1rem;
-        margin-bottom: 1rem;
-        background-color: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
     }
 
-    /* Scheduler principal */
-    .rz-scheduler {
-        flex: 1;
-        background-color: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
+    /* 🔥 DESTRUCTOR DE DESBORDAMIENTOS RADZEN 🔥
+           Forzamos a TODOS los contenedores del calendario a no esconder contenido */
+    .rz-scheduler,
+    .rz-scheduler-content,
+    .rz-view,
+    .rz-view-month,
+    .rz-events,
+    .rz-event,
+    .rz-slot {
+        overflow: visible !important;
     }
 
+    .rz-scheduler-header {
+        border-bottom: 1px solid var(--pro-border) !important;
+        background: transparent !important;
+    }
+
+    .rz-scheduler-nav {
+        border: 1px solid var(--pro-border) !important;
+        border-radius: 8px !important;
+    }
+
+    /* ================= MEJORA DEL DÍA ACTUAL ================= */
     .dia-actual {
-        position: relative;
-        background-color: rgba(13, 110, 253, 0.15) !important;
-        z-index: 2;
-        pointer-events: none;
-        border-right: 1px solid #0d6efd !important;
-        border-left: 1px solid #0d6efd !important;
+        background-color: rgba(79, 70, 229, 0.03) !important;
+        border-top: 4px solid var(--pro-primary) !important;
+        box-shadow: inset 0 0 20px rgba(79, 70, 229, 0.05) !important;
     }
 
-    /* Días no laborables (festivos y fines de semana) */
+    /* ================= DISEÑO LIMPIO Y MODERNO (EVENTOS) ================= */
+    .evento-base {
+        border-radius: 6px !important;
+        margin: 2px 4px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+
+        .evento-base:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            z-index: 100 !important;
+        }
+
+    /* Colores sólidos vibrantes y borde izquierdo oscuro para dar estilo de tarjeta */
+    .evento-vencido {
+        background-color: #64748b !important;
+        border-left: 4px solid #334155 !important;
+    }
+
+    .evento-critico {
+        background-color: #ef4444 !important;
+        border-left: 4px solid #991b1b !important;
+    }
+
+    .evento-advertencia {
+        background-color: #f59e0b !important;
+        border-left: 4px solid #b45309 !important;
+    }
+
+    .evento-atiempo {
+        background-color: #10b981 !important;
+        border-left: 4px solid #047857 !important;
+    }
+
+    /* 🔥 MAGIA PARA ARREGLAR LA LETRA FEA 🔥 */
+    /* Forzamos a TODOS los elementos dentro del evento a ser BLANCOS */
+    .evento-base,
+    .evento-base * {
+        color: #ffffff !important;
+    }
+
+        /* Ajustamos el contenedor del texto para que no se haga gordo ni salte de línea */
+        .evento-base .rz-event-content {
+            padding: 4px 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap !important; /* Prohíbe que el texto baje a otra línea */
+            overflow: hidden !important; /* Oculta lo que no quepa */
+            text-overflow: ellipsis !important; /* Le pone "..." si está muy largo */
+            display: block !important;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2) !important; /* Pequeña sombrita para que resalte más */
+        }
+
     .rz-scheduler-non-working-time-cell {
-        background-color: rgba(248, 249, 250, 0.7) !important;
-        border-left: none !important;
-        border-right: none !important;
-        border-top: none !important;
-        border-bottom: none !important;
+        background-color: #f8fafc !important;
         position: relative;
     }
 
@@ -467,111 +506,70 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-image: repeating-linear-gradient( 45deg, transparent, transparent 2px, rgba(0, 0, 0, 0.05) 2px, rgba(0, 0, 0, 0.05) 4px );
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.02) 4px, rgba(0, 0, 0, 0.02) 8px);
             pointer-events: none;
         }
 
-    .rz-dialog-content,
-    .rz-dialog {
-        overflow: visible !important;
+    /* Forzar que el texto del evento se vea decente sobre los colores inyectados */
+    .rz-event-content {
+        padding: 4px 8px !important;
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        color: white !important;
     }
 
-    /* Estados de vencimiento */
-    /* VERDE */
-    .event-verde {
-        background-color: #d4edda !important;
-        border-left-color: #28a745 !important;
-    }
-
-    /* AMARILLO */
-    .event-amarilla {
-        background-color: #fff3cd !important;
-        border-left-color: #ffc107 !important;
-    }
-
-    /* ROJO */
-    .event-roja {
-        background-color: #f8d7da !important;
-        border-left-color: #dc3545 !important;
-    }
-
-    /* GRIS */
-    .event-gris {
-        background-color: #e2e3e5 !important;
-        border-left-color: #6c757d !important;
-    }
-
-    /* Eventos - Estilo base con degradado superior */
+    /* ================= TOOLTIP NEGRO REPARADO (FLOTA HACIA ABAJO) ================= */
     .tooltip-wrapper {
         position: relative;
+        cursor: pointer;
+        z-index: 10;
     }
+
+        .tooltip-wrapper:hover {
+            z-index: 99999 !important; /* Manda el evento al frente de toda la pantalla */
+        }
 
         .tooltip-wrapper::after {
             content: attr(data-tooltip);
             position: absolute;
-            bottom: 110%;
+            top: 130%; /* AHORA FLOTA HACIA ABAJO DEL EVENTO */
             left: 50%;
             transform: translateX(-50%);
-            display: block;
-            background-color: #495057;
+            background-color: #0f172a;
             color: white;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
             font-size: 0.75rem;
             white-space: pre-line;
             opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 999999 !important; /* El rey de la pantalla */
+            min-width: 220px;
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            line-height: 1.5;
+            font-weight: 500;
             pointer-events: none;
-            transition: opacity 0.2s;
-            z-index: 1000;
-            min-width: 250px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .tooltip-wrapper::before {
             content: "";
             position: absolute;
-            bottom: 100%;
+            top: 100%; /* Flecha pegada a la base del evento */
             left: 50%;
             transform: translateX(-50%);
             border-width: 6px;
             border-style: solid;
-            border-color: transparent transparent #495057 transparent;
+            border-color: transparent transparent #0f172a transparent; /* Flecha apuntando hacia arriba */
             opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 999;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 999998 !important;
         }
 
-        /* Mostrar tooltip al pasar el mouse */
-        .tooltip-wrapper:hover::after,
-        .tooltip-wrapper:hover::before {
+        .tooltip-wrapper:hover::after, .tooltip-wrapper:hover::before {
             opacity: 1;
+            visibility: visible;
         }
-
-        /* Colores dinámicos por tipo */
-        .tooltip-wrapper.tooltip-arco::after {
-            background-color: #387fe7;
-        }
-
-        .tooltip-wrapper.tooltip-arco::before {
-            border-color: transparent transparent #0d6efd transparent;
-        }
-
-        .tooltip-wrapper.tooltip-dai::after {
-            background-color: #7841dd;
-        }
-
-        .tooltip-wrapper.tooltip-dai::before {
-            border-color: transparent transparent #6f42c1 transparent;
-        }
-
-        .tooltip-wrapper.tooltip-sintipo::after {
-            background-color: #575656;
-        }
-
-        .tooltip-wrapper.tooltip-sintipo::before {
-            border-color: transparent transparent #dadada transparent;
-        }
-
-    
 </style>

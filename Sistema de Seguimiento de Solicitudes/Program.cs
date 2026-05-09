@@ -15,7 +15,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Configuracion de HttpClient
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7123/") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7125/") });
 
 builder.Services.AddScoped<ICalendarioService, CalendarioService>();
 

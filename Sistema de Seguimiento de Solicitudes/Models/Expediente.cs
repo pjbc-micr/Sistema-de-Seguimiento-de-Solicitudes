@@ -4,6 +4,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Models
 {
     public class Expediente
     {
+
         // Identificador del expediente
         public int Id { get; set; }
 
@@ -114,6 +115,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Models
 
         // Nota adicional sobre el expediente
         public string Nota { get; set; } = string.Empty;
+
 
 
         // Constructor

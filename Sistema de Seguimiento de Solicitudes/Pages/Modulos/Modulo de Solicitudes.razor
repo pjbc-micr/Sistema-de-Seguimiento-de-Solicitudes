@@ -27,36 +27,35 @@
             <span class="module-description">Crear y gestionar nuevas solicitudes</span>
         </div>
 
-        <div class="module-card card-blue" @onclick="NavigateToIndiceExpedientes">
+        <div class="module-card card-teal" @onclick="NavigateToIndiceExpedientes">
             <i class="fas fa-folder-open card-icon"></i>
             <span class="module-title">Índice de Expedientes</span>
             <span class="module-description">Consultar y administrar expedientes</span>
         </div>
 
-        <div class="module-card card-blue" @onclick="NavigateToHistorialSolicitudes">
+        <div class="module-card card-indigo" @onclick="NavigateToHistorialSolicitudes">
             <i class="fas fa-history card-icon"></i>
             <span class="module-title">Historial de Solicitudes</span>
             <span class="module-description">Ver el historial completo</span>
         </div>
 
-        <div class="module-card card-blue" @onclick="NavigateToCalendarioRadzen">
+        <div class="module-card card-orange" @onclick="NavigateToCalendarioRadzen">
             <i class="fas fa-calendar-alt card-icon"></i>
             <span class="module-title">Calendario</span>
             <span class="module-description">Gestión de fechas importantes</span>
         </div>
 
-        <div class="module-card card-blue" @onclick="NavigateToCreacionUsuarios" style="@((EsAdministrador || EsSupervision) ? "" : "display:none")">
+        <div class="module-card card-green" @onclick="NavigateToCreacionUsuarios" style="@((EsAdministrador || EsSupervision) ? "" : "display:none")">
             <i class="fas fa-user-plus card-icon"></i>
             <span class="module-title">Creación de Usuarios</span>
             <span class="module-description">Administrar cuentas de usuario</span>
         </div>
 
-        <div class="module-card card-blue" @onclick="() => NavigateToEliminarExpediente()" style="@(EsAdministrador ? "" : "display:none")">
+        <div class="module-card card-red" @onclick="() => NavigateToEliminarExpediente()" style="@(EsAdministrador ? "" : "display:none")">
             <i class="fas fa-trash-alt card-icon"></i>
             <span class="module-title">Eliminar Expediente</span>
-            <span class="module-description">Eliminar expedientes completos del sistema de manera <strong class="warning-text">permanente</strong></span>
+            <span class="module-description">Eliminar expedientes completos de manera permanente</span>
         </div>
-
     </div>
 </div>
 

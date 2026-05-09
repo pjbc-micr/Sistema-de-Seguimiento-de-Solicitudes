@@ -1,17 +1,13 @@
 ﻿@page "/menu/modulo-solicitudes/inicio-solicitudes"
 
-@* Este atributo indica que la página requiere que el usuario esté autenticado *@
 @attribute [Authorize]
-@*@attribute [Authorize(Roles = "ADMINISTRADOR,CAPTURISTA,OBSERVADOR")]*@
 
-@* Se importa el espacio de nombres necesario para usar el atributo [Authorize] *@
 @using Microsoft.AspNetCore.Authorization
-
 @using System.Collections.Generic
 @using SolicitudesShared
 @using MudBlazor
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
-@using System.Text.Json 
+@using System.Text.Json
 @using Sistema_de_Seguimiento_de_Solicitudes.Models
 @using Microsoft.AspNetCore.Components.Authorization
 
@@ -21,357 +17,664 @@
 @inject IExpedienteService ExpedienteService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Inicio</PageTitle>
+<PageTitle>Inicio - Panel de Solicitudes</PageTitle>
 
-<h1 class="text-center mb-4">Solicitudes Pendientes</h1>
+<div class="dashboard-wrapper">
+    <div class="header-section mb-8">
+        <div class="header-content">
+            <h1 class="dashboard-title">Panel de Control</h1>
+            <p class="dashboard-subtitle">Monitoreo en tiempo real del estado y vigencia de las solicitudes</p>
+        </div>
+    </div>
 
-<div class="dashboard-container">
-    <MudGrid Justify="Justify.Center">
-        <!-- Tarjeta Gris -->
-        <MudItem xs="12" sm="4" md="4">
-            <MudCard Class="card card-gray">
-                <MudCardContent @onclick="@(() => ToggleVisibility(4))">
-                    <MudText Typo="Typo.h6" Style="text-align: center;"><strong>@solicitudesGrises.Count Solicitudes</strong></MudText>
-                    <MudText Style="text-align: center;">Vigencia: <strong>Vencidas</strong></MudText>
-                    @if (isVisible[4])
-                    {
-                        <div class="scroll-container">
-                            @foreach (var solicitud in solicitudesGrises)
-                            {
-                                <MudText @onclick="(() => RedirigirADetalles(solicitud.Id))">
-                                    <strong>ID:</strong> @solicitud.Id            |
-                                    <strong>Folio:</strong> @solicitud.Folio      |
-                                    <strong>Nombre:</strong> @solicitud.Nombre    |
-                                    <strong>Fecha:</strong> @solicitud.FechaInicioTramite.ToString("dd/MM/yyyy") |
-                                    <strong>Tiempo restante:</strong> @(GetTiempoRestante(solicitud.FechaInicioTramite)) días
-                                </MudText>
-                            }
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+    <div class="dashboard-container">
+        <MudGrid Spacing="4" Justify="Justify.Center">
 
-        <!-- Tarjeta Roja -->
-        <MudItem xs="12" sm="4" md="4">
-            <MudCard Class="card card-red">
-                <MudCardContent @onclick="@(() => ToggleVisibility(2))">
-                    <MudText Typo="Typo.h6" Style="text-align: center;"><strong>@solicitudesRojas.Count Solicitudes</strong></MudText>
-                    <MudText Style="text-align: center;">Vigencia: <strong>Menos de 2 días</strong></MudText>
-                    @if (isVisible[2])
-                    {
-                        <div class="scroll-container">
-                            @foreach (var solicitud in solicitudesRojas)
-                            {
-                                <MudText @onclick="(() => RedirigirADetalles(solicitud.Id))">
-                                    <strong>ID:</strong> @solicitud.Id            |
-                                    <strong>Folio:</strong> @solicitud.Folio      |
-                                    <strong>Nombre:</strong> @solicitud.Nombre    |
-                                    <strong>Fecha:</strong> @solicitud.FechaInicioTramite.ToString("dd/MM/yyyy") |
-                                    <strong>Tiempo restante:</strong> @(GetTiempoRestante(solicitud.FechaInicioTramite)) días
-                                </MudText>
-                            }
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <div class="status-card border-slate @(isVisible[4] ? "active" : "")" @onclick="@(() => ToggleVisibility(4))">
+                    <div class="card-icon bg-slate-light icon-slate">
+                        <MudIcon Icon="@Icons.Material.Filled.HistoryToggleOff" />
+                    </div>
+                    <div class="card-info">
+                        <span class="count-text text-slate">@solicitudesGrises.Count</span>
+                        <span class="status-label">Vencidas</span>
+                    </div>
+                    <MudIcon Icon="@(isVisible[4] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </div>
+                @if (isVisible[4])
+                {
+                    <div class="list-dropdown">@RenderList(solicitudesGrises, "slate")</div>
+                }
+            </MudItem>
 
-        <!-- Tarjeta Amarilla -->
-        <MudItem xs="12" sm="4" md="4">
-            <MudCard Class="card card-yellow">
-                <MudCardContent @onclick="@(() => ToggleVisibility(1))">
-                    <MudText Typo="Typo.h6" Style="text-align: center;"><strong>@solicitudesAmarillas.Count Solicitudes</strong></MudText>
-                    <MudText Style="text-align: center;">Vigencia: <strong>Menos de 5 días</strong></MudText>
-                    @if (isVisible[1])
-                    {
-                        <div class="scroll-container">
-                            @foreach (var solicitud in solicitudesAmarillas)
-                            {
-                                <MudText @onclick="(() => RedirigirADetalles(solicitud.Id))">
-                                    <strong>ID:</strong> @solicitud.Id            |
-                                    <strong>Folio:</strong> @solicitud.Folio      |
-                                    <strong>Nombre:</strong> @solicitud.Nombre    |
-                                    <strong>Fecha:</strong> @solicitud.FechaInicioTramite.ToString("dd/MM/yyyy") |
-                                    <strong>Tiempo restante:</strong> @(GetTiempoRestante(solicitud.FechaInicioTramite)) días
-                                </MudText>
-                            }
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <div class="status-card border-rose @(isVisible[2] ? "active" : "")" @onclick="@(() => ToggleVisibility(2))">
+                    <div class="card-icon bg-rose-light icon-rose pulse-animation">
+                        <MudIcon Icon="@Icons.Material.Filled.CrisisAlert" />
+                    </div>
+                    <div class="card-info">
+                        <span class="count-text text-rose">@solicitudesRojas.Count</span>
+                        <span class="status-label">Menos de 2 días</span>
+                    </div>
+                    <MudIcon Icon="@(isVisible[2] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </div>
+                @if (isVisible[2])
+                {
+                    <div class="list-dropdown">@RenderList(solicitudesRojas, "rose")</div>
+                }
+            </MudItem>
 
-        <!-- Tarjeta Verde -->
-        <MudItem xs="12" sm="4" md="4">
-            <MudCard Class="card card-green">
-                <MudCardContent @onclick="@(() => ToggleVisibility(0))">
-                    <MudText Typo="Typo.h6" Style="text-align: center;"><strong>@solicitudesVerdes.Count Solicitudes</strong></MudText>
-                    <MudText Style="text-align: center;">Vigencia: <strong>Mayor a 6 dias</strong></MudText>
-                    @if (isVisible[0])
-                    {
-                        <div class="scroll-container">
-                            @foreach (var solicitud in solicitudesVerdes)
-                            {
-                                <MudText @onclick="(() => RedirigirADetalles(solicitud.Id))">
-                                    <strong>ID:</strong> @solicitud.Id            |
-                                    <strong>Folio:</strong> @solicitud.Folio      |
-                                    <strong>Nombre:</strong> @solicitud.Nombre    |
-                                    <strong>Fecha:</strong> @solicitud.FechaInicioTramite.ToString("dd/MM/yyyy") |
-                                    <strong>Tiempo restante:</strong> @(GetTiempoRestante(solicitud.FechaInicioTramite)) días
-                                </MudText>
-                            }
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <div class="status-card border-amber @(isVisible[1] ? "active" : "")" @onclick="@(() => ToggleVisibility(1))">
+                    <div class="card-icon bg-amber-light icon-amber">
+                        <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" />
+                    </div>
+                    <div class="card-info">
+                        <span class="count-text text-amber">@solicitudesAmarillas.Count</span>
+                        <span class="status-label">Menos de 5 días</span>
+                    </div>
+                    <MudIcon Icon="@(isVisible[1] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </div>
+                @if (isVisible[1])
+                {
+                    <div class="list-dropdown">@RenderList(solicitudesAmarillas, "amber")</div>
+                }
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <div class="status-card border-emerald @(isVisible[0] ? "active" : "")" @onclick="@(() => ToggleVisibility(0))">
+                    <div class="card-icon bg-emerald-light icon-emerald">
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                    </div>
+                    <div class="card-info">
+                        <span class="count-text text-emerald">@solicitudesVerdes.Count</span>
+                        <span class="status-label">Mayor a 6 días</span>
+                    </div>
+                    <MudIcon Icon="@(isVisible[0] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </div>
+                @if (isVisible[0])
+                {
+                    <div class="list-dropdown">@RenderList(solicitudesVerdes, "emerald")</div>
+                }
+            </MudItem>
+
+        </MudGrid>
+    </div>
 </div>
 
 @code {
-    private bool[] isVisible = new bool[5];
+    private RenderFragment RenderList(List<Expediente> lista, string theme) => __builder =>
+    {
+        <div class="scroll-container">
+            @if (lista.Count == 0)
+            {
+                <div class="empty-state">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="empty-icon mb-2 opacity-50" />
+                    <p>Bandeja limpia. No hay solicitudes aquí.</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-wrapper">
+                    @foreach (var solicitud in lista)
+                    {
+                        int diasRestantes = GetTiempoRestante(solicitud.FechaInicioTramite);
+                        string badgeClass = theme == "slate" ? "badge-slate" :
+                        theme == "rose" ? "badge-rose" :
+                        theme == "amber" ? "badge-amber" : "badge-emerald";
+                        string diasTexto = diasRestantes < 0 ? "Vencida" : $"{diasRestantes}d restantes";
 
-    // Listas para almacenar las solicitudes
+                        <div class="list-item" @onclick="(() => RedirigirADetalles(solicitud.Id))">
+                            <div class="item-main">
+                                <div class="item-header">
+                                    <span class="item-folio">
+                                        <MudIcon Icon="@Icons.Material.Filled.Article" Class="small-icon mr-2 text-muted-icon" />
+                                        @solicitud.Folio
+                                    </span>
+                                    <span class="status-badge @badgeClass">@diasTexto</span>
+                                </div>
+                                <div class="item-body">
+                                    <span class="item-name" title="@solicitud.Nombre">@solicitud.Nombre</span>
+                                </div>
+                                <div class="item-footer">
+                                    <span class="item-date">
+                                        <MudIcon Icon="@Icons.Material.Filled.Event" Class="small-icon mr-1 inline-icon" />
+                                        Iniciado: @solicitud.FechaInicioTramite.ToString("dd MMM yyyy")
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="item-action">
+                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Class="chevron-right" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    };
+
+    private bool[] isVisible = new bool[5];
     private List<Expediente> solicitudesGrises = new();
     private List<Expediente> solicitudesRojas = new();
     private List<Expediente> solicitudesAmarillas = new();
     private List<Expediente> solicitudesVerdes = new();
 
-    //private List<Expediente> ExpedientesFiltrados = new();
-
     List<ExpedienteDTO>? listaExpedientes = null;
-    private List<ExpedienteDTO> ExpedientesFiltrados { get; set; } = new();
-
-    private ExpedienteDTO NuevoExpediente { get; set; } = new();
-
-    //private Expediente Expediente { get; set; } = new Expediente();
 
     protected override async Task OnInitializedAsync()
     {
-
-        listaExpedientes = await ExpedienteService.Lista(); // Recuperar datos de la base de datos en forma de lista
-
-        NuevoExpediente.FechaInicio = DateTime.Now;
-
+        listaExpedientes = await ExpedienteService.Lista();
         ClasificarSolicitudes();
     }
 
     private void ClasificarSolicitudes()
     {
-        // Limpia las listas para evitar datos duplicados
-        solicitudesGrises.Clear();
-        solicitudesRojas.Clear();
-        solicitudesAmarillas.Clear();
-        solicitudesVerdes.Clear();
+        solicitudesGrises.Clear(); solicitudesRojas.Clear();
+        solicitudesAmarillas.Clear(); solicitudesVerdes.Clear();
 
         if (listaExpedientes != null)
         {
-            foreach (var expedienteDTO in listaExpedientes)
+            foreach (var dto in listaExpedientes)
             {
-                // Convertir de ExpedienteDTO a Expediente
-                var expediente = new Expediente
-                    {
-                        Id = expedienteDTO.Id,
-                        Folio = expedienteDTO.Folio ?? string.Empty,
-                        Nombre = expedienteDTO.NombreSolicitante ?? string.Empty,
-                        FechaInicioTramite = expedienteDTO.FechaInicio,
-                        Estatus = expedienteDTO.Estado ?? string.Empty
-                    };
-
-                // Verificar que FechaInicioTramite no sea null
-                if (expediente.FechaInicioTramite != DateTime.MinValue)
+                var exp = new Expediente
                 {
-                    int tiempoRestante = GetTiempoRestante(expediente.FechaInicioTramite);
-                    DateTime? fechaLimite;
+                    Id = dto.Id,
+                    Folio = dto.Folio ?? "S/F",
+                    Nombre = dto.NombreSolicitante ?? "Sin nombre registrado",
+                    FechaInicioTramite = dto.FechaInicio,
+                    Estatus = dto.Estado ?? ""
+                };
 
-					if (expediente.TipoSolicitud == "DAI")
-					{
-						fechaLimite = NuevoExpediente.FechaLimiteRespuesta10dias;
-					}
-					else if (expediente.TipoSolicitud == "ARCO")
-					{
-						fechaLimite = NuevoExpediente.FechaLimiteRespuesta20dias;
-					}
-					else
-					{
-						fechaLimite = DateTime.MinValue; // Valor por defecto si no coincide con ningún tipo
-					}
-
-                    // Si está vencida, se añade a la tarjeta gris
-                    if (tiempoRestante < 0)
-                    {
-                        solicitudesGrises.Add(expediente);
-                    }
-                    // Si tiene menos de 2 días restantes (Tarjeta roja)
-                    else if (tiempoRestante < 3)
-                    {
-                        solicitudesRojas.Add(expediente);
-                    }
-                    // Si está entre 3 y 5 días restantes (Tarjeta amarilla)
-                    else if (tiempoRestante < 6)
-                    {
-                        solicitudesAmarillas.Add(expediente);
-                    }
-                    // Mayor a 6 dias restantes (Tarjeta verde)
-                    else 
-                    {
-                        solicitudesVerdes.Add(expediente);
-                    }
+                if (exp.FechaInicioTramite != DateTime.MinValue)
+                {
+                    int diasRestantes = GetTiempoRestante(exp.FechaInicioTramite);
+                    if (diasRestantes < 0) solicitudesGrises.Add(exp);
+                    else if (diasRestantes < 3) solicitudesRojas.Add(exp);
+                    else if (diasRestantes < 6) solicitudesAmarillas.Add(exp);
+                    else solicitudesVerdes.Add(exp);
                 }
             }
         }
     }
 
-    // Usuario Observador
-    private async Task<bool> UsuarioEsSoloObservador()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        return user.IsInRole("OBSERVADOR") && !user.IsInRole("ADMINISTRADOR") && !user.IsInRole("CAPTURISTA");
-    }
-
-    private int CalcularDiasHabiles(DateTime fechaInicio)
-    {
-        int diasHabiles = 0;
-        //DateTime fechaInicio = NuevoExpediente.FechaInicio; // Fecha de inicio
-
-		DateTime fechaActual = DateTime.Now; // Fecha actual
-
-        for (DateTime fecha = fechaInicio; fecha <= fechaActual; fecha = fecha.AddDays(1))
-        {
-            if (fecha.DayOfWeek != DayOfWeek.Saturday && fecha.DayOfWeek != DayOfWeek.Sunday)
-            {
-                diasHabiles++;
-            }
-        }
-
-        return diasHabiles;
-    }
-
     private int GetTiempoRestante(DateTime? fechaInicio)
     {
-        if (fechaInicio.HasValue)
-        {
-            DateTime fechaVencimiento = fechaInicio.Value.AddDays(30); // Límite de 30 días
-            return (fechaVencimiento - DateTime.Now).Days;
-        }
-        return 0; // Devuelve 0 si la fecha es null
+        if (!fechaInicio.HasValue) return 0;
+        DateTime fechaVencimiento = fechaInicio.Value.AddDays(30);
+        return (fechaVencimiento.Date - DateTime.Now.Date).Days;
     }
 
-    private void ToggleVisibility(int index)
-    {
-        isVisible[index] = !isVisible[index];
-    }
+    private void ToggleVisibility(int index) => isVisible[index] = !isVisible[index];
 
     private void RedirigirADetalles(int id)
     {
-        // Verificar que listaExpedientes no sea null
-        if (listaExpedientes != null)
-        {
-            // Busca el expediente en la lista de expedientes
-            var expediente = listaExpedientes.FirstOrDefault(e => e.Id == id);
-            if (expediente != null)
-            {
-                // Asegúrate de que la ruta esté correcta
-                Navigation.NavigateTo($"/menu/modulo-solicitudes/indice-expedientes/detalles/{id}/{expediente.Folio}");
-            }
-        }
-        else
-        {
-            // Manejar el caso en que listaExpedientes sea null (opcional)
-            Console.WriteLine("La lista de expedientes es null.");
-        }
+        var exp = listaExpedientes?.FirstOrDefault(e => e.Id == id);
+        if (exp != null) Navigation.NavigateTo($"/menu/modulo-solicitudes/indice-expedientes/detalles/{id}/{exp.Folio}");
     }
 }
 
-
-<style> /*    No quitar Style, no lo detecta en razor.css    */
-    .mud-text {
-        text-align: center;
+<style>
+    :root {
+        --bg-body: #f4f7f9;
+        --card-bg: #ffffff;
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --border-light: #e2e8f0;
+        --slate-500: #64748b;
+        --slate-800: #1e293b;
+        --slate-50: #f8fafc;
+        --rose-500: #f43f5e;
+        --rose-600: #e11d48;
+        --rose-50: #fff1f2;
+        --amber-500: #f59e0b;
+        --amber-600: #d97706;
+        --amber-50: #fffbeb;
+        --emerald-500: #10b981;
+        --emerald-600: #059669;
+        --emerald-50: #ecfdf5;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     }
 
-    .dashboard-container {
-        padding: 20px;
+    .dashboard-wrapper {
+        padding: 2rem 1rem;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background-color: transparent;
     }
 
-    .card {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        padding: 16px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        cursor: pointer; /* Cambia el cursor para indicar que se puede hacer clic */
+    .header-section {
+        margin-bottom: 2.5rem;
+        position: relative;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-light);
     }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-
-    h1 {
-        font-size: 2rem;
-        color: #333;
+    .dashboard-title {
+        font-weight: 800;
+        font-size: 2.25rem;
+        color: var(--text-primary);
+        letter-spacing: -0.025em;
+        margin-bottom: 0.25rem;
     }
 
-    .card .mud-text {
-        color: #555;
+    .dashboard-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.05rem;
+        font-weight: 400;
     }
 
-    /* Colores para las tarjetas */
-    .card-green {
-        background-color: #d4edda;
+    /* FIX DEFINITIVO PARA FLEXBOX Y TAMAÑOS */
+    .status-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+        user-select: none;
+        overflow: hidden;
     }
 
-    .card-yellow {
-        background-color: #fff3cd;
-    }
-
-    .card-red {
-        background-color: #f8d7da;
-    }
-
-    .card-gray {
-        background-color: #dcdcdc;
-    }
-
-    /* Estilo para la lista scrollable */
-    .scroll-container {
-        max-height: 150px;
-        overflow-y: auto;
-        margin-top: 10px;
-        padding-right: 8px;
-    }
-
-        /* Barra de desplazamiento minimalista */
-        .scroll-container::-webkit-scrollbar {
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
             width: 6px;
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+            transition: width 0.2s;
         }
 
-        .scroll-container::-webkit-scrollbar-thumb {
-            background-color: #888;
-            border-radius: 10px;
+        .status-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
         }
 
-            .scroll-container::-webkit-scrollbar-thumb:hover {
-                background-color: #555;
+            .status-card:hover::before {
+                width: 8px;
             }
 
-        /* Estilo para cada solicitud */
-        .scroll-container .mud-text {
-            padding: 8px 12px; /* Espaciado interno */
-            border-bottom: 1px solid #ddd; /* Separador ligero */
-            transition: background-color 0.2s ease;
+        .status-card.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: transparent;
+            box-shadow: var(--shadow-md);
+            transform: none;
+            z-index: 10;
         }
 
-            /* Eliminar borde inferior en la última solicitud */
-            .scroll-container .mud-text:last-child {
-                border-bottom: none;
+            .status-card.active::before {
+                border-bottom-left-radius: 0;
             }
 
-            /* Hover para resaltar cada solicitud */
-            .scroll-container .mud-text:hover {
-                background-color: #f9f9f9;
-                cursor: pointer;
-            }
+    .border-slate::before {
+        background-color: var(--slate-500);
+    }
 
+    .border-rose::before {
+        background-color: var(--rose-500);
+    }
+
+    .border-amber::before {
+        background-color: var(--amber-500);
+    }
+
+    .border-emerald::before {
+        background-color: var(--emerald-500);
+    }
+
+    /* CANDADOS DE TAMAÑO PARA ICONOS PRINCIPALES */
+    .card-icon {
+        flex-shrink: 0 !important;
+        width: 52px !important;
+        height: 52px !important;
+        min-width: 52px !important;
+        min-height: 52px !important;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+    }
+
+        .card-icon svg {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+    .status-card:hover .card-icon {
+        transform: scale(1.05) rotate(-3deg);
+    }
+
+    .bg-slate-light {
+        background-color: var(--slate-50);
+    }
+
+    .bg-rose-light {
+        background-color: var(--rose-50);
+    }
+
+    .bg-amber-light {
+        background-color: var(--amber-50);
+    }
+
+    .bg-emerald-light {
+        background-color: var(--emerald-50);
+    }
+
+    .icon-slate {
+        color: var(--slate-500);
+    }
+
+    .icon-rose {
+        color: var(--rose-600);
+    }
+
+    .icon-amber {
+        color: var(--amber-600);
+    }
+
+    .icon-emerald {
+        color: var(--emerald-600);
+    }
+
+    @@keyframes pulseRed {
+        0% {
+            box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(244, 63, 94, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+        }
+    }
+
+    .pulse-animation {
+        animation: pulseRed 2s infinite;
+    }
+
+    /* CANDADO PARA TEXTOS LARGOS QUE ROMPEN EL FLEX */
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        min-width: 0 !important; /* CRÍTICO para que no empuje a los lados */
+    }
+
+    .count-text {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+
+    .text-slate {
+        color: var(--slate-800);
+    }
+
+    .text-rose {
+        color: var(--rose-600);
+    }
+
+    .text-amber {
+        color: var(--amber-600);
+    }
+
+    .text-emerald {
+        color: var(--emerald-600);
+    }
+
+    .status-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* CANDADO DE TAMAÑO PARA FLECHA DE EXPANSIÓN */
+    .expand-icon {
+        flex-shrink: 0 !important;
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        color: var(--text-secondary);
+        transition: transform 0.3s ease, color 0.2s;
+        opacity: 0.5;
+    }
+
+        .expand-icon svg {
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+    .status-card:hover .expand-icon {
+        opacity: 1;
+        color: var(--text-primary);
+    }
+
+    /* CANDADOS PARA ICONOS DE LA LISTA INTERNA */
+    .small-icon {
+        flex-shrink: 0 !important;
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+        .small-icon svg {
+            width: 18px !important;
+            height: 18px !important;
+        }
+
+    .chevron-right {
+        flex-shrink: 0 !important;
+        width: 24px !important;
+        height: 24px !important;
+        color: #cbd5e1;
+        transition: transform 0.2s, color 0.2s;
+    }
+
+        .chevron-right svg {
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+    .empty-icon {
+        width: 48px !important;
+        height: 48px !important;
+    }
+
+        .empty-icon svg {
+            width: 48px !important;
+            height: 48px !important;
+        }
+
+    .list-dropdown {
+        background: var(--card-bg);
+        border: 1px solid var(--border-light);
+        border-top: 1px solid #f1f5f9;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        transform-origin: top;
+        position: relative;
+        z-index: 9;
+    }
+
+    @@keyframes slideDownFade {
+        from {
+            opacity: 0;
+            transform: scaleY(0.95) translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scaleY(1) translateY(0);
+        }
+    }
+
+    .scroll-container {
+        max-height: 320px;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .list-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin: 0.5rem;
+        border-radius: 12px;
+        background-color: #ffffff;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .list-item:hover {
+            background-color: #f8fafc;
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-sm);
+            transform: translateX(4px);
+        }
+
+    .item-main {
+        flex-grow: 1;
+        overflow: hidden;
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .item-folio {
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .text-muted-icon {
+        color: #cbd5e1;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    .badge-slate {
+        background-color: var(--slate-50);
+        color: var(--slate-600);
+        border: 1px solid #e2e8f0;
+    }
+
+    .badge-rose {
+        background-color: var(--rose-50);
+        color: var(--rose-600);
+        border: 1px solid #ffe4e6;
+    }
+
+    .badge-amber {
+        background-color: var(--amber-50);
+        color: var(--amber-600);
+        border: 1px solid #fef3c7;
+    }
+
+    .badge-emerald {
+        background-color: var(--emerald-50);
+        color: var(--emerald-600);
+        border: 1px solid #d1fae5;
+    }
+
+    .item-name {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        font-weight: 500;
+    }
+
+    .item-footer {
+        margin-top: 0.5rem;
+    }
+
+    .item-date {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+    }
+
+    .inline-icon {
+        opacity: 0.7;
+    }
+
+    .item-action {
+        padding-left: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .list-item:hover .chevron-right {
+        color: var(--text-primary);
+        transform: translateX(3px);
+    }
+
+    .empty-state {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #94a3b8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-weight: 500;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scroll-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+
+        .scroll-container::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
+        }
 </style>
