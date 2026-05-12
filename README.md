@@ -8,3 +8,7 @@ LA BASE DE DATOS CORRECTA ES LA QUE SE LLAMA "SistemaSolicitudes.bacpac", ignora
 
 La base de datos la pasé aca es el "SistemaSolicitudes.bacpac", en tu sql server management dale clic derecho a "Databases" luego le das a "import Data-tier application", procura que la base de datos se llame SistemaSolicitudes
 
+Para abrir el sistema es en cualquier navegador en: localhost:7123
+
+Si te lanza errores de seguridad para abrir el sistema en visual studio asegúrate de que al descargar el .rar del sistema este desmarcada la opción de "Solo lectura" y este desbloqueado el contenido, esto lo puedes averiguar dándole clic derecho sobre el archivo y en propiedades.
+

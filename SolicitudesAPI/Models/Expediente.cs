@@ -8,7 +8,7 @@ public partial class Expediente
     public int Id { get; set; }
 
     public string? Folio { get; set; }
-
+    public int AnoAdmision { get; set; }
     public string? MesAdmision { get; set; }
 
     public string? TipoSolicitud { get; set; }

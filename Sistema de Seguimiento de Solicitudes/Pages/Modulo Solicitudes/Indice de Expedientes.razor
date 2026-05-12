@@ -433,6 +433,10 @@
                                     <label>Cobro (Monto o N/A)</label>
                                     <InputText class="modern-input" @bind-Value="NuevoExpedienteVM.Cobro" placeholder="Ej. N/A o $150.00" />
                                 </div>
+                                <div class="input-group">
+    <label>Días de Promedio</label>
+    <InputNumber class="modern-input" @bind-Value="NuevoExpedienteVM.PromedioDiasRespuesta" placeholder="Ej. 15" />
+</div>
 
                                 @if (NuevoExpedienteVM.Ampliacion == "Si")
                                 {
@@ -730,10 +734,10 @@
             return;
         }
 
-        if (listaExpedientes!.Any(e => e.Folio == NuevoExpedienteVM.Folio))
+      if (listaExpedientes!.Any(e => e.Folio == NuevoExpedienteVM.Folio))
         {
-            await MostrarAlerta("EL FOLIO YA EXISTE EN EL SISTEMA.");
-            return;
+            // Solo avisamos, pero al no poner 'return', el código sigue y guarda
+            await JSRuntime.InvokeVoidAsync("alert", "⚠️ ADVERTENCIA: El número de Folio ya existe en el sistema. Se registrará como un duplicado.");
         }
 
         // Mapeo del ViewModel (Expediente) a DataTransferObject (ExpedienteDTO)
@@ -765,6 +769,7 @@
             SentidoRespuesta = NuevoExpedienteVM.SentidoRespuesta,
             PrecisionSentidoRespuesta = NuevoExpedienteVM.PrecisionSentidoRespuesta,
             ModalidadEntrega = NuevoExpedienteVM.ModalidadEntrega,
+            PromedioDiasRespuesta = NuevoExpedienteVM.PromedioDiasRespuesta,
             Cobro = NuevoExpedienteVM.Cobro,
             RecursoRevision = NuevoExpedienteVM.RecursoRevision,
             NumeroRecursoRevision = NuevoExpedienteVM.NumeroRecursoRevision,

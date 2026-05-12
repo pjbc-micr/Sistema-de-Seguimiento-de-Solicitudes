@@ -67,7 +67,6 @@
 
             <div class="content-grid" disabled="@EsSoloConsulta">
 
-                <!-- ================= TARJETA 1 ================= -->
                 <div class="card-section">
                     <h3 class="section-title">
                         <MudIcon Icon="@Icons.Material.Filled.Description" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #4f46e5;" />
@@ -75,6 +74,12 @@
                     </h3>
 
                     <div class="form-grid">
+                        
+                        <div class="input-group span-2">
+                            <label>Folio de la Solicitud</label>
+                            <InputText class="modern-input" @bind-Value="Expediente.Folio" disabled="@EsSoloConsulta" placeholder="Ingrese el folio" />
+                        </div>
+
                         <div class="input-group span-2">
                             <label>Nombre del Solicitante</label>
                             <InputText class="modern-input" @bind-Value="Expediente.Nombre" disabled="@EsSoloConsulta" placeholder="Nombre completo del solicitante" />
@@ -103,7 +108,6 @@
                             </InputSelect>
                         </div>
 
-                        <!-- 🔥 MODIFICADO: Ciudades por Catálogo -->
                         <div class="input-group">
                             <label>Ciudad del Solicitante</label>
                             <InputSelect class="modern-input" @bind-Value="Expediente.Ciudad" disabled="@EsSoloConsulta">
@@ -167,7 +171,6 @@
                     </div>
                 </div>
 
-                <!-- ================= TARJETA 2 ================= -->
                 <div class="card-section">
                     <h3 class="section-title">
                         <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #f59e0b;" />
@@ -268,7 +271,6 @@
                     </div>
                 </div>
 
-                <!-- ================= TARJETA 3 ================= -->
                 <div class="card-section">
                     <h3 class="section-title">
                         <MudIcon Icon="@Icons.Material.Filled.Category" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #8b5cf6;" />
@@ -287,7 +289,6 @@
                             </InputSelect>
                         </div>
 
-                        <!-- 🔥 MODIFICADO: Materia por Catálogo -->
                         <div class="input-group">
                             <label>Materia</label>
                             <InputSelect class="modern-input" @bind-Value="Expediente.Materia" disabled="@EsSoloConsulta">
@@ -299,7 +300,6 @@
                             </InputSelect>
                         </div>
 
-                        <!-- 🔥 MODIFICADO: Temática por Catálogo -->
                         <div class="input-group">
                             <label>Temática</label>
                             <InputSelect class="modern-input" @bind-Value="Expediente.Tematica" disabled="@EsSoloConsulta">
@@ -318,7 +318,6 @@
                     </div>
                 </div>
 
-                <!-- ================= TARJETA 4 ================= -->
                 <div class="card-section">
                     <h3 class="section-title">
                         <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #10b981;" />
@@ -355,7 +354,6 @@
                             </InputSelect>
                         </div>
 
-                        <!-- 🔥 MODIFICADO: Precisión del sentido por Catálogo -->
                         <div class="input-group">
                             <label>Precisión del Sentido</label>
                             <InputSelect class="modern-input" @bind-Value="Expediente.PrecisionSentidoRespuesta" disabled="@EsSoloConsulta">
@@ -367,7 +365,6 @@
                             </InputSelect>
                         </div>
 
-                        <!-- 🔥 MODIFICADO: Modalidad de Entrega por Catálogo -->
                         <div class="input-group">
                             <label>Modalidad de Entrega Real</label>
                             <InputSelect class="modern-input" @bind-Value="Expediente.ModalidadEntrega" disabled="@EsSoloConsulta">
@@ -383,6 +380,10 @@
                             <label>Cobro (Monto o N/A)</label>
                             <InputText class="modern-input" @bind-Value="Expediente.Cobro" disabled="@EsSoloConsulta" placeholder="Ej. N/A o $150.00" />
                         </div>
+                        <div class="input-group">
+    <label>Días de Promedio</label>
+    <InputNumber class="modern-input" @bind-Value="Expediente.PromedioDiasRespuesta" disabled="@EsSoloConsulta" placeholder="Ej. 15" />
+</div>
 
                         @if (Expediente.Ampliacion == "Si")
                         {
@@ -400,7 +401,6 @@
                     </div>
                 </div>
 
-                <!-- ================= TARJETA 5 ================= -->
                 <div class="card-section">
                     <h3 class="section-title">
                         <MudIcon Icon="@Icons.Material.Filled.Gavel" Style="width: 24px; height: 24px; flex-shrink: 0; margin-right: 10px; color: #ef4444;" />
@@ -545,6 +545,7 @@
                 TematicaEspecifica = expedienteDTO.TematicaEspecifica ?? string.Empty,
                 SentidoRespuesta = expedienteDTO.SentidoRespuesta ?? string.Empty,
                 PrecisionSentidoRespuesta = expedienteDTO.PrecisionSentidoRespuesta ?? string.Empty,
+                PromedioDiasRespuesta = expedienteDTO.PromedioDiasRespuesta,
                 ModalidadEntrega = expedienteDTO.ModalidadEntrega ?? string.Empty,
                 Cobro = expedienteDTO.Cobro ?? string.Empty,
                 RecursoRevision = expedienteDTO.RecursoRevision ?? string.Empty,
@@ -721,6 +722,7 @@
         expedienteOriginal.TematicaEspecifica = Expediente.TematicaEspecifica;
         expedienteOriginal.SentidoRespuesta = Expediente.SentidoRespuesta;
         expedienteOriginal.PrecisionSentidoRespuesta = Expediente.PrecisionSentidoRespuesta;
+        expedienteOriginal.PromedioDiasRespuesta = Expediente.PromedioDiasRespuesta;
         expedienteOriginal.ModalidadEntrega = Expediente.ModalidadEntrega;
         expedienteOriginal.Cobro = Expediente.Cobro;
         expedienteOriginal.RecursoRevision = Expediente.RecursoRevision;

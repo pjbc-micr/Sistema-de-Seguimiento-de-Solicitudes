@@ -15,9 +15,10 @@
 @inject IExpedienteService ExpedienteService
 @inject ICalendarioService CalendarioService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Calendario de Vencimientos</PageTitle>
-
 <div class="page-container">
     <div class="header-flex">
         <h2 class="page-title">Calendario de Solicitudes</h2>
@@ -65,7 +66,8 @@
                          ShowHeader="@showHeader"
                          TextProperty="Title"
                          SelectedIndex="2"
-                         AppointmentRender="@OnAppointmentRender">
+                         AppointmentRender="@OnAppointmentRender"
+                         AppointmentSelect="@OnAppointmentSelect">
             <RadzenDayView />
             <RadzenWeekView />
             <RadzenMonthView />
@@ -82,11 +84,13 @@
     private bool esAdminOSupervision;
 
     private List<EventoSolicitud> eventos = new List<EventoSolicitud>();
+    
+    // 🔥 NUEVO: Lista global para buscar el ID cuando den clic
+    private List<ExpedienteDTO> listaExpedientesGlobal = new();
 
     DateTime? fechaSeleccionada;
     List<DateTime> diasApagadosManualmente = new();
 
-    // 🔥 NUEVO MÉTODO: Calcula la fecha límite saltando fines de semana, festivos y días manuales
     private DateTime CalcularFechaLimite(DateTime inicio, int dias)
     {
         var fecha = inicio.Date;
@@ -100,6 +104,7 @@
         }
         return fecha;
     }
+    
     private readonly List<DateTime> diasFestivos = new List<DateTime>
     {
         new DateTime(DateTime.Now.Year, 1, 1),
@@ -123,6 +128,9 @@
         esAdminOSupervision = usuarioActual.IsInRole("ADMINISTRADOR") || usuarioActual.IsInRole("SUPERVISIÓN");
 
         var expedienteList = await ExpedienteService.Lista();
+        
+        // Guardamos copia de la lista para usarla en los clics
+        listaExpedientesGlobal = expedienteList;
 
         diasApagadosManualmente = (await CalendarioService.ObtenerDiasInhabiles())
             .Select(d => d.Fecha.Date)
@@ -139,19 +147,15 @@
         {
             DateTime inicio = expediente.FechaInicio;
 
-            // 🔥 NUEVA REGLA: 20 días hábiles parejo para DAI y ARCO
             int diasCalculo = 20;
             
-            // Si tiene ampliación, le sumamos 10 días (Topando en 30)
             if (expediente.Ampliacion?.ToUpper() == "SI")
             {
                 diasCalculo += 10;
             }
 
-            // Calculamos la fecha saltando los días inhábiles
             DateTime fechaFin = CalcularFechaLimite(inicio, diasCalculo);
 
-            // Respetamos si la base de datos ya tenía una fecha guardada (por si se modificó manual)
             if (expediente.Prevencion == true && expediente.FechaLimitePrevencion10dias.HasValue)
             {
                 fechaFin = expediente.FechaLimitePrevencion10dias.Value;
@@ -171,8 +175,8 @@
 
             listaEventos.Add(new EventoSolicitud
             {
-                Title = $"{expediente.Folio} – {expediente.NombreSolicitante}",
-                Start = fechaFin.Date, // La pastilla solo se pinta el día de vencimiento
+                Title = $"{expediente.Folio} - {expediente.NombreSolicitante}", // 🔥 GUION NORMAL AQUÍ
+                Start = fechaFin.Date,
                 End = fechaFin.Date.AddHours(23).AddMinutes(59),
                 TipoSolicitud = expediente.TipoSolicitud ?? "",
                 TienePrevencion = expediente.Prevencion,
@@ -201,6 +205,8 @@
             }
 
             var expedienteList = await ExpedienteService.Lista();
+            listaExpedientesGlobal = expedienteList; // Actualizamos la lista global
+            
             diasApagadosManualmente = (await CalendarioService.ObtenerDiasInhabiles()).Select(d => d.Fecha.Date).ToList();
 
             eventos = MapearEventos(expedienteList);
@@ -252,14 +258,12 @@
         var fechaLimiteReal = args.Data.Start.Date;
         var diasHabilesRestantes = CalcularDiasHabiles(DateTime.Now.Date, fechaLimiteReal);
 
-        // Asignamos una clase CSS dinámica según la urgencia en lugar de estilos en línea
         string estadoClase = "";
         if (diasHabilesRestantes < 0) estadoClase = "evento-vencido";
         else if (diasHabilesRestantes < 3) estadoClase = "evento-critico";
         else if (diasHabilesRestantes < 6) estadoClase = "evento-advertencia";
         else estadoClase = "evento-atiempo";
 
-        // Concatenamos las clases: la base, el tooltip y el color
         args.Attributes["class"] = $"evento-base tooltip-wrapper {estadoClase}";
 
         string textoVencimiento = diasHabilesRestantes < 0
@@ -270,6 +274,33 @@
                                           $"Tipo: {args.Data.TipoSolicitud}\n" +
                                           $"Día de Vencimiento: {fechaLimiteReal:dd/MM/yyyy}\n" +
                                           textoVencimiento;
+    }
+    // 🔥 NUEVO: Método Asíncrono a prueba de fallos
+    async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<EventoSolicitud> args)
+    {
+        try
+        {
+            // 1. Extraemos el folio usando un guion normal
+            var folioExtraido = args.Data.Title.Split('-')[0].Trim();
+
+            // 2. Buscamos el expediente original asegurándonos de quitar espacios vacíos
+            var expedienteEncontrado = listaExpedientesGlobal.FirstOrDefault(e => e.Folio != null && e.Folio.Trim() == folioExtraido);
+
+            // 3. Si lo encontramos, redirigimos
+            if (expedienteEncontrado != null)
+            {
+                Navigation.NavigateTo($"/menu/modulo-solicitudes/indice-expedientes/detalles/{expedienteEncontrado.Id}/{expedienteEncontrado.Folio}");
+            }
+            else
+            {
+                // 4. Si falla, ahora te avisará qué folio intentó buscar
+                await JS.InvokeVoidAsync("alert", $"Error: No se encontró en memoria el folio '{folioExtraido}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Hubo un problema al abrir el evento: {ex.Message}");
+        }
     }
 
     void OnSlotRender(SchedulerSlotRenderEventArgs args)
@@ -446,6 +477,7 @@
         margin: 2px 4px !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+        cursor: pointer !important; /* 🔥 Hace que el mouse cambie a "manita" para indicar que es clickeable */
     }
 
         .evento-base:hover {

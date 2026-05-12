@@ -68,7 +68,6 @@
                 </select>
             </div>
 
-            <!-- 🔥 NUEVO: Botón para limpiar filtros -->
             <button class="btn-clear-filters" @onclick="LimpiarFiltros" title="Restablecer filtros">
                 <MudIcon Icon="@Icons.Material.Filled.FilterAltOff" Style="width: 20px; height: 20px;" />
             </button>
@@ -94,7 +93,6 @@
                         <th>Vencimiento</th>
                         <th style="text-align: center;">Ampliación</th>
                         <th style="text-align: center;">Estado</th>
-                        <th style="width: 60px; text-align: center;">ID</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,7 +108,6 @@
                                 </td>
                                 <td class="text-folio">@solicitud.Folio</td>
                                 
-                                <!-- 🔥 NUEVA: Tipo de Solicitud -->
                                 <td>
                                     <span class="badge-tipo">@(string.IsNullOrEmpty(solicitud.TipoSolicitud) ? "-" : solicitud.TipoSolicitud)</span>
                                 </td>
@@ -118,12 +115,10 @@
                                 <td class="text-nombre">@solicitud.NombreSolicitante</td>
                                 <td class="text-date">@solicitud.FechaInicio.ToString("dd/MM/yyyy")</td>
                                 
-                                <!-- 🔥 NUEVA: Fecha de Vencimiento -->
                                 <td class="text-date fw-bold" style="color: #334155;">
                                     @ObtenerFechaVencimiento(solicitud)
                                 </td>
 
-                                <!-- 🔥 NUEVA: Requiere Ampliación -->
                                 <td style="text-align: center;">
                                     @if (solicitud.Ampliacion?.ToUpper() == "SI")
                                     {
@@ -140,14 +135,13 @@
                                         @solicitud.Estado
                                     </span>
                                 </td>
-                                <td class="text-id">#@solicitud.Id</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="9" class="empty-state">
+                            <td colspan="8" class="empty-state">
                                 <MudIcon Icon="@Icons.Material.Filled.SearchOff" Style="width: 48px; height: 48px; color: #cbd5e1; margin-bottom: 1.5rem;" />
                                 <p class="text-dark">No encontramos resultados.</p>
                                 <p class="text-muted text-sm">Prueba ajustando o restableciendo los filtros de búsqueda.</p>
@@ -361,8 +355,8 @@
 
         var headers = new[] {
         "ID", "Folio", "Año Admisión", "Mes Admisión", "Tipo Solicitud", "Tipo Derecho", "Nombre Solicitante",
-        "Fecha Inicio", "Límite 10 días", "Ampliación", "Sesión Ampliación", "Fecha Sesión",
-        "Límite 20 días", "Estado", "Fecha Respuesta", "Promedio Días", "¿Prevención?", "Subsanación",
+        "Fecha Inicio", "Limite de respuesta", "Ampliación", "Sesión Ampliación", "Fecha Sesión",
+        "Limite de respuesta con ampliación", "Estado", "Fecha Respuesta", "Promedio Días", "¿Prevención?", "Subsanación",
         "Límite Prevención", "Recibida", "Recepción Manual", "Modo Respuesta", "Correo", "Contenido",
         "Área Poseedora", "Materia", "Ciudad", "Temática", "Temática Específica", "Sentido Respuesta",
         "Precisión Sentido", "Entrega", "Cobro", "Recurso", "N° Recurso", "Datos Recurso", "Nota"

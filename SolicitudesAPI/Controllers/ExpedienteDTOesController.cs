@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using SolicitudesAPI.Models;
 using SolicitudesShared;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -19,9 +18,6 @@ namespace SolicitudesAPI.Controllers
         {
             _context = context;
         }
-        public string? RecibidaRegistradaPNT { get; set; }
-
-        // Fixing the syntax errors and context issues in the Lista method
 
         [HttpGet("Lista")]
         public async Task<ActionResult> Lista()
@@ -35,11 +31,12 @@ namespace SolicitudesAPI.Controllers
                 {
                     listaExpedienteDTO.Add(new ExpedienteDTO
                     {
-                        // Etapa inicial
                         Id = expediente.Id,
                         Folio = expediente.Folio,
+                        // Dentro del foreach de Lista
+                        AnoAdmision = expediente.AnoAdmision ,
                         NombreSolicitante = expediente.NombreSolicitante,
-                        FechaInicio = expediente.FechaInicio ?? default(DateTime), // Manejar valores NULL
+                        FechaInicio = expediente.FechaInicio ?? default(DateTime),
                         Estado = expediente.Estado,
                         ContenidoSolicitud = expediente.ContenidoSolicitud,
                         MesAdmision = expediente.MesAdmision,
@@ -52,7 +49,6 @@ namespace SolicitudesAPI.Controllers
                         FechaLimiteRespuesta20dias = expediente.FechaLimiteRespuesta20dias,
                         FechaRespuesta = expediente.FechaRespuesta,
                         PromedioDiasRespuesta = expediente.PromedioDiasRespuesta,
-
                         Prevencion = expediente.Prevencion,
                         SubsanaPrevencionReinicoTramite = expediente.SubsanaPrevencionReinicoTramite,
                         FechaLimitePrevencion10dias = expediente.FechaLimitePrevencion10dias,
@@ -60,11 +56,7 @@ namespace SolicitudesAPI.Controllers
                         MedioRecepcionSolicitudManual = expediente.MedioRecepcionSolicitudManual,
                         ComoDeseaRecibirRespuestaPersonaSolicitante = expediente.ComoDeseaRecibirRespuestaPersonaSolicitante,
                         CorreoElectronicoSolicitante = expediente.CorreoElectronicoSolicitante,
-
-                        // Etapa de seguimiento
                         AreaPoseedoraInformacion = expediente.AreaPoseedoraInformacion,
-
-                        // Etapa Final
                         Materia = expediente.Materia,
                         CiudadSolicitante = expediente.CiudadSolicitante,
                         Tematica = expediente.Tematica,
@@ -76,10 +68,10 @@ namespace SolicitudesAPI.Controllers
                         RecursoRevision = expediente.RecursoRevision,
                         NumeroRecursoRevision = expediente.NumeroRecursoRevision,
                         DatosRecursoRevision = expediente.DatosRecursoRevision,
-                        Nota = expediente.Nota
+                        Nota = expediente.Nota,
+                        
                     });
                 }
-
                 responseApi.Exito = true;
                 responseApi.Data = listaExpedienteDTO;
             }
@@ -88,101 +80,81 @@ namespace SolicitudesAPI.Controllers
                 responseApi.Exito = false;
                 responseApi.Mensaje = ex.Message;
             }
-
             return Ok(responseApi);
         }
 
-       
-
-
-        // POST: api/Expedientes/add
         [HttpPost("Crear")]
         public async Task<ActionResult> Crear(ExpedienteDTO expediente)
         {
             var responseApi = new ResponseAPI<int>();
-
             try
             {
+                // 🔥 AQUÍ ESTABA EL ERROR: Ahora mapeamos TODOS los campos al crear 🔥
                 var dbExpediente = new Expediente
                 {
                     Folio = expediente.Folio,
                     NombreSolicitante = expediente.NombreSolicitante,
                     FechaInicio = expediente.FechaInicio,
                     Estado = expediente.Estado,
-                    ContenidoSolicitud = expediente.ContenidoSolicitud
+                    ContenidoSolicitud = expediente.ContenidoSolicitud,
+                    MesAdmision = expediente.MesAdmision,
+                    TipoSolicitud = expediente.TipoSolicitud,
+                    TipoDerecho = expediente.TipoDerecho,
+                    FechaLimiteRespuesta10dias = expediente.FechaLimiteRespuesta10dias,
+                    Ampliacion = expediente.Ampliacion,
+                    NumeroSesionComiteAmpliacion = expediente.NumeroSesionComiteAmpliacion,
+                    FechaSesionComiteAmpliacion = expediente.FechaSesionComiteAmpliacion,
+                    FechaLimiteRespuesta20dias = expediente.FechaLimiteRespuesta20dias,
+                    FechaRespuesta = expediente.FechaRespuesta,
+                    PromedioDiasRespuesta = expediente.PromedioDiasRespuesta,
+                    Prevencion = expediente.Prevencion,
+                    SubsanaPrevencionReinicoTramite = expediente.SubsanaPrevencionReinicoTramite,
+                    FechaLimitePrevencion10dias = expediente.FechaLimitePrevencion10dias,
+                    RecibidaRegistrada = expediente.RecibidaRegistrada,
+                    MedioRecepcionSolicitudManual = expediente.MedioRecepcionSolicitudManual,
+                    ComoDeseaRecibirRespuestaPersonaSolicitante = expediente.ComoDeseaRecibirRespuestaPersonaSolicitante,
+                    CorreoElectronicoSolicitante = expediente.CorreoElectronicoSolicitante,
+                    AreaPoseedoraInformacion = expediente.AreaPoseedoraInformacion,
+                    Materia = expediente.Materia,
+                    CiudadSolicitante = expediente.CiudadSolicitante,
+                    Tematica = expediente.Tematica,
+                    TematicaEspecifica = expediente.TematicaEspecifica,
+                    SentidoRespuesta = expediente.SentidoRespuesta,
+                    PrecisionSentidoRespuesta = expediente.PrecisionSentidoRespuesta,
+                    ModalidadEntrega = expediente.ModalidadEntrega,
+                    Cobro = expediente.Cobro,
+                    RecursoRevision = expediente.RecursoRevision,
+                    NumeroRecursoRevision = expediente.NumeroRecursoRevision,
+                    DatosRecursoRevision = expediente.DatosRecursoRevision,
+                    Nota = expediente.Nota
                 };
 
                 _context.Expedientes.Add(dbExpediente);
                 await _context.SaveChangesAsync();
 
-                if (dbExpediente.Id != 0)
-                {
-                    responseApi.Exito = true;
-                    responseApi.Data = dbExpediente.Id;
-                }
-                else
-                {
-                    responseApi.Exito = false;
-                    responseApi.Mensaje = "No se pudo crear el expediente";
-                }
+                responseApi.Exito = true;
+                responseApi.Data = dbExpediente.Id;
             }
             catch (Exception ex)
             {
                 responseApi.Exito = false;
                 responseApi.Mensaje = ex.Message;
             }
-
             return Ok(responseApi);
         }
 
-        // DELETE: api/Expedientes/5
-        [HttpDelete("Eliminar/{id}")]
-        public async Task<IActionResult> Eliminar(int id)
-        {
-            var responseApi = new ResponseAPI<int>();
-
-            try
-            {
-                var dbExpediente = await _context.Expedientes.FirstOrDefaultAsync(e => e.Id == id);
-
-                if (dbExpediente != null)
-                {
-                    _context.Expedientes.Remove(dbExpediente);
-                    await _context.SaveChangesAsync();
-
-                    responseApi.Exito = true;
-                }
-                else
-                {
-                    responseApi.Exito = false;
-                    responseApi.Mensaje = "No se pudo encontrar el expediente";
-                }
-            }
-            catch (Exception ex)
-            {
-                responseApi.Exito = false;
-                responseApi.Mensaje = ex.Message;
-            }
-
-            return Ok(responseApi);
-        }
-
-        // PUT: api/Expedientes/5
         [HttpPut("Actualizar/{id}")]
         public async Task<IActionResult> Actualizar(int id, [FromBody] ExpedienteDTO expediente)
         {
-            if (id != expediente.Id)
-            {
-                return BadRequest("ID mismatch");
-            }
+            if (id != expediente.Id) return BadRequest("ID mismatch");
 
             var expedienteExistente = await _context.Expedientes.FindAsync(id);
-            if (expedienteExistente == null)
-            {
-                return NotFound("Expediente no encontrado");
-            }
+            if (expedienteExistente == null) return NotFound("Expediente no encontrado");
 
-            // Etapa Inicial
+            // 🔥 Actualización de campos (Incluyendo el Folio que antes no se guardaba)
+            expedienteExistente.Folio = expediente.Folio;
+            expedienteExistente.AnoAdmision = expediente.AnoAdmision; 
+            expedienteExistente.NombreSolicitante = expediente.NombreSolicitante;
             expedienteExistente.MesAdmision = expediente.MesAdmision;
             expedienteExistente.TipoSolicitud = expediente.TipoSolicitud;
             expedienteExistente.TipoDerecho = expediente.TipoDerecho;
@@ -195,21 +167,15 @@ namespace SolicitudesAPI.Controllers
             expedienteExistente.Estado = expediente.Estado;
             expedienteExistente.FechaRespuesta = expediente.FechaRespuesta;
             expedienteExistente.PromedioDiasRespuesta = expediente.PromedioDiasRespuesta;
-
             expedienteExistente.Prevencion = expediente.Prevencion;
             expedienteExistente.SubsanaPrevencionReinicoTramite = expediente.SubsanaPrevencionReinicoTramite;
             expedienteExistente.FechaLimitePrevencion10dias = expediente.FechaLimitePrevencion10dias;
             expedienteExistente.RecibidaRegistrada = expediente.RecibidaRegistrada;
             expedienteExistente.MedioRecepcionSolicitudManual = expediente.MedioRecepcionSolicitudManual;
             expedienteExistente.ComoDeseaRecibirRespuestaPersonaSolicitante = expediente.ComoDeseaRecibirRespuestaPersonaSolicitante;
-            expedienteExistente.NombreSolicitante = expediente.NombreSolicitante;
             expedienteExistente.CorreoElectronicoSolicitante = expediente.CorreoElectronicoSolicitante;
             expedienteExistente.ContenidoSolicitud = expediente.ContenidoSolicitud;
-
-            // Etapa de Seguimiento
             expedienteExistente.AreaPoseedoraInformacion = expediente.AreaPoseedoraInformacion;
-
-            // Etapa Final
             expedienteExistente.Materia = expediente.Materia;
             expedienteExistente.CiudadSolicitante = expediente.CiudadSolicitante;
             expedienteExistente.Tematica = expediente.Tematica;
@@ -230,13 +196,37 @@ namespace SolicitudesAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+                return StatusCode(500, $"Error: {ex.Message}");
             }
         }
 
+        [HttpDelete("Eliminar/{id}")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            var responseApi = new ResponseAPI<int>();
+            try
+            {
+                var dbExpediente = await _context.Expedientes.FirstOrDefaultAsync(e => e.Id == id);
+                if (dbExpediente != null)
+                {
+                    _context.Expedientes.Remove(dbExpediente);
+                    await _context.SaveChangesAsync();
+                    responseApi.Exito = true;
+                }
+                else
+                {
+                    responseApi.Exito = false;
+                    responseApi.Mensaje = "No encontrado";
+                }
+            }
+            catch (Exception ex)
+            {
+                responseApi.Exito = false;
+                responseApi.Mensaje = ex.Message;
+            }
+            return Ok(responseApi);
+        }
 
-      
-            // GET: api/Expedientes/BuscarPorTexto?filtro=algo
         [HttpGet("BuscarPorTexto")]
         public async Task<ActionResult> BuscarPorTexto([FromQuery] string filtro)
         {
@@ -246,11 +236,9 @@ namespace SolicitudesAPI.Controllers
             try
             {
                 var query = _context.Expedientes.AsQueryable();
-
                 if (!string.IsNullOrWhiteSpace(filtro))
                 {
                     filtro = filtro.ToLower();
-
                     query = query.Where(e =>
                         (e.Folio != null && e.Folio.ToLower().Contains(filtro)) ||
                         (e.NombreSolicitante != null && e.NombreSolicitante.ToLower().Contains(filtro)) ||
@@ -260,7 +248,6 @@ namespace SolicitudesAPI.Controllers
                 }
 
                 var expedientes = await query.ToListAsync();
-
                 foreach (var expediente in expedientes)
                 {
                     listaExpedienteDTO.Add(new ExpedienteDTO
@@ -273,7 +260,6 @@ namespace SolicitudesAPI.Controllers
                         ContenidoSolicitud = expediente.ContenidoSolicitud
                     });
                 }
-
                 responseApi.Exito = true;
                 responseApi.Data = listaExpedienteDTO;
             }
@@ -282,7 +268,6 @@ namespace SolicitudesAPI.Controllers
                 responseApi.Exito = false;
                 responseApi.Mensaje = ex.Message;
             }
-
             return Ok(responseApi);
         }
     }

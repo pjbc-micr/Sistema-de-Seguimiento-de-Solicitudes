@@ -9,10 +9,11 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Models
         public int Id { get; set; }
 
         // Año de admisión
-        public int AnoAdmision { get; set; }
+    
 
         // Número de la solicitud
         public string? Folio { get; set; }
+        public int AnoAdmision { get; set; }
 
         // Mes de admisión
         public string MesAdmision { get; set; } = string.Empty;
@@ -124,5 +125,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Models
             FechaInicioTramite = DateTime.Now;
             FechaRespuesta = null; // ahora no se pone por omisión
         }
+
+
     }
 }
