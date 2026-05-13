@@ -366,7 +366,123 @@
 
                                 <div class="input-group span-2">
                                     <label>Temática Específica</label>
-                                    <InputText class="modern-input" @bind-Value="NuevoExpedienteVM.TematicaEspecifica" placeholder="Especifique los detalles..." />
+                                    <InputSelect class="modern-input"
+                                                 @bind-Value="NuevoExpedienteVM.TematicaEspecifica"
+                                                 disabled="@EsSoloConsulta">
+
+                                        <option value="">-- Seleccione --</option>
+
+                                        @if (NuevoExpedienteVM.Tematica == "ACTIVIDADES DEL CJE")
+                                        {
+                                            @foreach (var item in Catalogos.ActividadesCJE)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "ACTIVIDADES DEL TSJ")
+                                        {
+                                            @foreach (var item in Catalogos.ActividadesTSJ)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "ACTIVIDADES DE LOS ÓRGANOS JURISDICCIONALES DE PRIMERA INSTANCIA")
+                                        {
+                                            @foreach (var item in Catalogos.ActividadesOrganosJurisdiccionales)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "ADMINISTRACIÓN JUDICIAL")
+                                        {
+                                            @foreach (var item in Catalogos.AdministracionJudicial)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "DATOS PERSONALES")
+                                        {
+                                            @foreach (var item in Catalogos.DatosPersonales)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "DESECHADA")
+                                        {
+                                            @foreach (var item in Catalogos.Desechada)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "IMPROCEDENCIA")
+                                        {
+                                            @foreach (var item in Catalogos.Improcedencia)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "INCOMPETENCIA")
+                                        {
+                                            @foreach (var item in Catalogos.Incompetencia)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "INFORMACIÓN ESTADÍSTICA")
+                                        {
+                                            @foreach (var item in Catalogos.InformacionEstadistica)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "MANEJO PRESUPUESTAL")
+                                        {
+                                            @foreach (var item in Catalogos.ManejoPresupuestal)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "NOTORIA INCOMPETENCIA")
+                                        {
+                                            @foreach (var item in Catalogos.NotoriaIncompetencia)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "ORIENTACIÓN")
+                                        {
+                                            @foreach (var item in Catalogos.Orientacion)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "PRESTACIONES LABORALES")
+                                        {
+                                            @foreach (var item in Catalogos.PrestacionesLaborales)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "TOTAL INCOMPETENCIA")
+                                        {
+                                            @foreach (var item in Catalogos.TotalIncompetencia)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else if (NuevoExpedienteVM.Tematica == "USO DE RECURSOS PÚBLICOS")
+                                        {
+                                            @foreach (var item in Catalogos.UsoRecursosPublicos)
+                                            {
+                                                <option value="@item">@item</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="">-- Seleccione una temática --</option>
+                                        }
+
+                                    </InputSelect>
                                 </div>
                             </div>
                         </div>
@@ -399,11 +515,12 @@
 
                                 <div class="input-group">
                                     <label>Sentido de la Respuesta</label>
-                                    <InputSelect class="modern-input" @bind-Value="NuevoExpedienteVM.SentidoRespuesta">
+                                   <InputSelect class="modern-input" @bind-Value="NuevoExpedienteVM.SentidoRespuesta">
                                         <option disabled selected value="">-- Seleccione --</option>
-                                        <option value="Afirmativa">Afirmativa</option>
-                                        <option value="Negativa">Negativa</option>
-                                        <option value="Parcial">Parcial</option>
+                                        @foreach (var sentido in Catalogos.SentidoRespuesta)
+                                        {
+                                            <option value="@sentido">@sentido</option>
+                                        }
                                     </InputSelect>
                                 </div>
 

@@ -112,7 +112,7 @@
 
         public static readonly List<string> Ciudades = new()
                    {
-                       "TIJUANA", "MEXICALI", "ENSENADA", "ROSARITO", "TECATE"
+                       "TIJUANA", "MEXICALI", "ENSENADA", "ROSARITO", "TECATE", "SAN QUINTIN", "SAN FELIPE"
                    };
 
         public static readonly List<string> Cobros = new()
@@ -214,6 +214,26 @@
                "QUEJAS ADMINISTRATIVAS"
            };
 
+        public static readonly List<string> DatosPersonales = new()
+           {
+               "PERSONAS FISICAS Y/O MORALES"
+           };
+
+        public static readonly List<string> Desechada = new()
+           {
+               "DESECHADA"
+           };
+
+        public static readonly List<string> Improcedencia = new()
+           {
+               "IMPROCEDENCIA"
+           };
+
+        public static readonly List<string> Incompetencia = new()
+           {
+               "INCOMPETENCIA"
+           };
+
         public static readonly List<string> InformacionEstadistica = new()
            {
                "CIVIL",
@@ -238,6 +258,11 @@
                "PRESUPUESTO ASIGNADO", "PRESUPUESTO EJERCIDO"
            };
 
+        public static readonly List<string> NotoriaIncompetencia = new()
+           {
+               "NOTORIA INCOMPETENCIA"
+           };
+
         public static readonly List<string> Orientacion = new()
            {
                "CAPACITACIÓN",
@@ -254,6 +279,11 @@
                "PERMISOS CON O SIN GOCE DE SUELDOS", "INCAPACIDADES",
                "SUELDOS",
                "TELÉFONO/VEHÍCULO OFICIAL"
+           };
+
+        public static readonly List<string> TotalIncompetencia= new()
+           {
+               "TOTAL INCOMPETENCIA"
            };
 
         public static readonly List<string> UsoRecursosPublicos = new()
