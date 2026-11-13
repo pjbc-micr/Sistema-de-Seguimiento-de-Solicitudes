@@ -5,10 +5,6 @@
 @code {
     protected override void OnInitialized()
     {
-		if (!Navigation.Uri.EndsWith("/"))
-		{
-			Navigation.NavigateTo("/", true); // Redirige al login
-		}
-        
+        Navigation.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
     }
 }

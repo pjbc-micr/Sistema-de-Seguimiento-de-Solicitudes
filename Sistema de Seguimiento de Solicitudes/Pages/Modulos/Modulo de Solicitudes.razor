@@ -1,6 +1,6 @@
 ﻿@page "/menu/modulo-solicitudes"
 
-@attribute [Authorize]
+@attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA,CONSULTA")]
 
 @using Microsoft.AspNetCore.Authorization
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
@@ -13,10 +13,11 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AppMessageService Messages
 
-<PageTitle>Módulo de Solicitudes</PageTitle>
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
-<div class="module-container">
+<div class="module-container ss-page-module motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
     <h1 class="module-header">Módulo de Solicitudes</h1>
     <p class="module-subtitle">Seleccione una opción para continuar</p>
 
@@ -62,7 +63,7 @@
 @code {
     private async Task ShowComingSoon()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Esta funcionalidad estará disponible próximamente");
+        await Messages.InfoAsync("Esta funcionalidad estará disponible próximamente.");
     }
 
     private void NavigateToInicioSolicitudes()
@@ -87,7 +88,7 @@
 
     private void NavigateToCreacionUsuarios()
     {
-        Navigation.NavigateTo("/menu/modulo-solicitudes/CreacionUsuarios");
+        Navigation.NavigateTo("/menu/usuarios");
     }
 
     private void NavigateToEliminarExpediente()

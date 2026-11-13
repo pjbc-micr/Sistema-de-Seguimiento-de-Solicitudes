@@ -2,6 +2,11 @@
 
 
 <CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized Context="headerContext">
+            <SystemHeader User="@headerContext.User" />
+        </Authorized>
+    </AuthorizeView>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
@@ -29,7 +34,7 @@
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
-            <PageTitle>No encontrado</PageTitle>
+            <PageTitle>Seguimiento de solicitudes</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
                 <p role="alert">Lo sentimos, no se encontró esa dirección.</p>
             </LayoutView>

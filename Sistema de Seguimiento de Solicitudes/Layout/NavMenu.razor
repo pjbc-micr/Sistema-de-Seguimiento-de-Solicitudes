@@ -1,65 +1,79 @@
-﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
 
 @attribute [Authorize]
 
-<div class="sidebar-header">
-    <a class="brand-logo" href="/menu">
-        <span class="brand-icon-glow">
-            <i class="bi bi-shield-check"></i>
-        </span>
-        <span class="brand-text">Modulo de solicitudes</span>
-    </a>
-    <button title="Menú de navegación" class="mobile-toggle" @onclick="ToggleNavMenu">
-        <i class="bi bi-list"></i>
-    </button>
-</div>
+<div class="sidebar-panel absolute inset-y-0 left-0 overflow-hidden rounded-2xl border-[1px] border-[#612840] bg-[linear-gradient(180deg,#421224_0%,#2d0b19_55%,#240914_100%)] shadow-lg motion-safe:transition-[width,box-shadow] motion-safe:duration-300 motion-safe:ease-in-out @(isExpanded ? "is-expanded w-[min(250px,calc(100vw-24px))] shadow-xl" : "w-[68px]")" @onkeydown="HandleKeyDown">
+    <div class="sidebar-header">
+        <button @ref="toggleButton" type="button" class="sidebar-toggle" aria-label="@(isExpanded ? "Contraer menú lateral" : "Expandir menú lateral")" aria-expanded="@isExpanded.ToString().ToLowerInvariant()" aria-controls="sidebar-navigation" title="@(isExpanded ? "Contraer menú lateral" : "Expandir menú lateral")" @onclick="ToggleSidebar">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+        <span class="sidebar-label" aria-hidden="true">Menú del módulo</span>
+    </div>
 
-<div class="@NavMenuCssClass nav-scrollable custom-scrollbar" @onclick="ToggleNavMenu">
-    <nav class="flex-column nav-menu-container">
+    <div class="nav-scrollable custom-scrollbar">
+        <nav id="sidebar-navigation" class="flex-column nav-menu-container" aria-label="Navegación del módulo">
+            <div class="nav-item">
+                <NavLink class="pro-nav-link" href="/menu" Match="NavLinkMatch.All" aria-label="Volver al menú" title="Volver al menú" @onclick="CollapseSidebar">
+                    <i class="bi bi-arrow-left nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Volver al menú</span>
+                </NavLink>
+            </div>
+
+        @if (EnGestionUsuarios)
+        {
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Gestión de usuarios</div>
+
+            <div class="nav-item">
+                <NavLink class="pro-nav-link" href="@(EnRutaUsuariosAnterior ? "/menu/modulo-solicitudes/CreacionUsuarios" : "/menu/usuarios")" Match="NavLinkMatch.All" aria-label="Usuarios" title="Usuarios" @onclick="CollapseSidebar">
+                    <i class="bi bi-people nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Usuarios</span>
+                </NavLink>
+            </div>
+        }
 
         @* ============================================================
            MÓDULO DE SOLICITUDES
            ============================================================ *@
         @if (EnModuloSolicitudes)
         {
-            <div class="nav-section-title">Módulo Solicitudes</div>
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Módulo Solicitudes</div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/indice-expedientes">
-                    <i class="bi bi-journal-text nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/indice-expedientes" aria-label="Consulta" title="Consulta" @onclick="CollapseSidebar">
+                    <i class="bi bi-journal-text nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Consulta</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/Calendario">
-                    <i class="bi bi-calendar-event nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/Calendario" aria-label="Calendario" title="Calendario" @onclick="CollapseSidebar">
+                    <i class="bi bi-calendar-event nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Calendario</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/inicio-solicitudes">
-                    <i class="bi bi-inboxes nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/inicio-solicitudes" aria-label="Inicio Solicitudes" title="Inicio Solicitudes" @onclick="CollapseSidebar">
+                    <i class="bi bi-inboxes nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Inicio Solicitudes</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/historial-solicitudes">
-                    <i class="bi bi-clock-history nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/historial-solicitudes" aria-label="Historial" title="Historial" @onclick="CollapseSidebar">
+                    <i class="bi bi-clock-history nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Historial</span>
                 </NavLink>
             </div>
 
-            <AuthorizeView Roles="ADMINISTRADOR, Admin">
+            <AuthorizeView Roles="ADMINISTRADOR">
                 <div class="nav-item mt-3">
-                    <NavLink class="pro-nav-link danger-link" href="/menu/modulo-solicitudes/eliminar-expedientes">
-                        <i class="bi bi-trash3 nav-icon"></i>
+                    <NavLink class="pro-nav-link danger-link" href="/menu/modulo-solicitudes/eliminar-expedientes" aria-label="Eliminar" title="Eliminar" @onclick="CollapseSidebar">
+                        <i class="bi bi-trash3 nav-icon" aria-hidden="true"></i>
                         <span class="nav-text">Eliminar</span>
                     </NavLink>
                 </div>
@@ -71,105 +85,145 @@
            ============================================================ *@
         @if (EnModuloRecursos)
         {
-            <div class="nav-section-divider"></div>
-            <div class="nav-section-title">Recursos de Revisión</div>
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Recursos de Revisión</div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/registro/expediente">
-                    <i class="bi bi-folder2-open nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/registro/expediente" aria-label="Expediente" title="Expediente" @onclick="CollapseSidebar">
+                    <i class="bi bi-folder2-open nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Expediente</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/busqueda">
-                    <i class="bi bi-search nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/busqueda" aria-label="Buscar Recursos" title="Buscar Recursos" @onclick="CollapseSidebar">
+                    <i class="bi bi-search nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Buscar Recursos</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/estadisticas">
-                    <i class="bi bi-bar-chart nav-icon"></i>
-                    <span class="nav-text">Estadísticas</span>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/estadisticas" aria-label="Datos Estadísticos" title="Datos Estadísticos" @onclick="CollapseSidebar">
+                    <i class="bi bi-bar-chart nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Datos Estadísticos</span>
                 </NavLink>
             </div>
         }
 
-    </nav>
+        </nav>
+    </div>
 </div>
 
 @code {
-    private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes");
-    private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision");
+    private bool isExpanded;
+    private ElementReference toggleButton;
+    private string CurrentPath => NavManager.ToBaseRelativePath(NavManager.Uri).Split('?', '#')[0].TrimEnd('/');
+    private bool EnRutaUsuariosAnterior => string.Equals(CurrentPath, "menu/modulo-solicitudes/CreacionUsuarios", StringComparison.OrdinalIgnoreCase);
+    private bool EnGestionUsuarios => string.Equals(CurrentPath, "menu/usuarios", StringComparison.OrdinalIgnoreCase) || EnRutaUsuariosAnterior;
+    private bool EnModuloSolicitudes => !EnGestionUsuarios && NavManager.Uri.Contains("/menu/modulo-solicitudes", StringComparison.OrdinalIgnoreCase);
+    private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision", StringComparison.OrdinalIgnoreCase);
 
-    private bool collapseNavMenu = true;
+    protected override void OnInitialized()
+    {
+        NavManager.LocationChanged += OnLocationChanged;
+    }
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        CollapseSidebar();
+        _ = InvokeAsync(StateHasChanged);
+    }
 
-    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    private void ToggleSidebar() => isExpanded = !isExpanded;
+
+    private void CollapseSidebar() => isExpanded = false;
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && isExpanded)
+        {
+            CollapseSidebar();
+            await toggleButton.FocusAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
 }
 
 <style>
     /* ================= ULTRA-PREMIUM PALETTE ================= */
     :root {
-        --sidebar-bg: #090e17; /* Ultra oscuro, casi negro abismal */
-        --sidebar-border: #1e293b;
-        --sidebar-text: #94a3b8;
-        --sidebar-text-hover: #ffffff;
-        --sidebar-active-text: #818cf8; /* Índigo neón */
-        --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
-    }
-
-    .sidebar {
-        background-color: var(--sidebar-bg) !important;
-        background-image: none !important;
-        border-right: 1px solid var(--sidebar-border);
+        --sidebar-bg: #2d0b19;
+        --sidebar-border: #612840;
+        --sidebar-text: #dfc7d0;
+        --sidebar-text-hover: #fff7f9;
+        --sidebar-active-text: #edb2c5;
+        --sidebar-hover-bg: rgba(159, 71, 104, 0.18);
     }
 
     /* ================= HEADER Y LOGO ================= */
     .sidebar-header {
         height: 4.5rem;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.25rem;
+        align-items: center; /* Centra el contenido verticalmente */
+        justify-content: flex-start; /* Alinea todo hacia la izquierda */
+        padding: 0 2rem;
         border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     .brand-logo {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 12px; /* Espacio perfecto entre el ícono y el texto */
         text-decoration: none;
-        color: white;
+        color: var(--sidebar-text-hover, #ffffff); /* Color del texto */
+        transition: opacity 0.2s ease;
+        width: 100%; /* Se asegura de usar todo el espacio del header */
+        min-width: 0; /* CLAVE: Permite que el contenedor se encoja */
     }
 
-    .brand-icon-glow {
-        background: linear-gradient(135deg, #6366f1, #3b82f6);
-        color: white;
-        width: 30px;
-        height: 30px;
+        .brand-logo:hover {
+            opacity: 0.8; /* Efecto sutil al pasar el mouse */
+        }
+
+    /* ================= DISEÑO DEL ÍCONO ================= */
+    .back-icon {
+        background-color: rgba(159, 71, 104, 0.2);
+        color: #e6c6d1;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); /* Resplandor */
+        border-radius: 8px; /* Bordes redondeados modernos */
+        font-size: 1.2rem;
+        transition: all 0.2s ease;
+    }
+
+    /* Efecto hover específico para el ícono */
+    .brand-logo:hover .back-icon {
+        background-color: rgba(159, 71, 104, 0.34);
+        transform: translateX(-3px); /* Pequeña animación hacia la izquierda indicando "regreso" */
     }
 
     .brand-text {
-        font-size: 1.1rem;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.2;
+        /* Las siguientes dos líneas evitan que el texto se rompa en dos renglones si es muy largo */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
     }
 
     /* ================= CONTENEDOR PRINCIPAL ================= */
     .nav-scrollable {
         height: calc(100vh - 4.5rem);
         overflow-y: auto;
-        padding: 1.5rem 0;
+        padding: 0.1rem 0 1.5rem 0;
     }
 
     .nav-menu-container {
@@ -181,18 +235,12 @@
 
     /* Títulos de Sección */
     .nav-section-title {
-        font-size: 0.68rem;
+        font-size: 1rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #475569;
-        margin: 1.5rem 0 0.5rem 0.75rem;
-    }
-
-    .nav-section-divider {
-        height: 1px;
-        background-color: rgba(255,255,255,0.05);
-        margin: 1rem 0.5rem;
+        color: #F0F0F0;
+        margin: 0.1rem 0 0.5rem 0.60rem;
     }
 
     /* ================= ENLACES DEL MENÚ ================= */
@@ -224,8 +272,9 @@
 
     /* Hover */
     .pro-nav-link:hover {
-        background-color: var(--sidebar-hover-bg);
+        background: linear-gradient(90deg, rgba(159, 71, 104, 0.24), rgba(87, 23, 47, 0.08));
         color: var(--sidebar-text-hover);
+        box-shadow: inset 3px 0 #bd708b, 0 0 16px rgba(159, 71, 104, 0.18);
     }
 
         .pro-nav-link:hover .nav-icon {
@@ -235,7 +284,7 @@
 
     /* ESTADO ACTIVO ULTRA PREMIUM (Gradiente + Barra) */
     .pro-nav-link.active {
-        background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+        background: linear-gradient(90deg, rgba(159, 71, 104, 0.3) 0%, rgba(87, 23, 47, 0.08) 100%);
         color: var(--sidebar-active-text);
         font-weight: 600;
         position: relative;
@@ -251,7 +300,7 @@
             width: 3px;
             background-color: var(--sidebar-active-text);
             border-radius: 0 4px 4px 0;
-            box-shadow: 2px 0 8px rgba(99, 102, 241, 0.5);
+            box-shadow: 2px 0 8px rgba(211, 160, 178, 0.55);
         }
 
         .pro-nav-link.active .nav-icon {
